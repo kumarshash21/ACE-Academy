@@ -822,8 +822,10 @@ export default function SyllabusPage() {
                           flexWrap: "wrap" 
                         }}>
                           <div className="mod-links" style={{ margin: 0, display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                            {mod.resources && mod.resources.length > 0 && mod.resources.map((res, rIdx) => {
-                              const isVideo = res.type.toLowerCase() === "video";
+                            {mod.resources && mod.resources.length > 0 && mod.resources
+                              .filter((res) => res.type.toLowerCase() !== "video")
+                              .map((res, rIdx) => {
+                              const isVideo = false;
                               return isComingSoon ? (
                                 <span
                                   key={rIdx}

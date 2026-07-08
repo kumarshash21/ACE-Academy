@@ -77,3 +77,8 @@ export const PRODUCTS: ProductSummary[] = [
     moduleCount: 27,
   },
 ];
+
+export function getVisibleCerts(team: string, certs: CertId[]): CertId[] {
+  const allowed = PERSONA_CERTS[team] ?? PERSONA_CERTS.default;
+  return certs.filter((cert) => allowed.includes(cert));
+}

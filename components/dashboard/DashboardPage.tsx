@@ -2,30 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { findCertLevel } from "@/lib/assessment-mapping";
-import { CMETA, PERSONA_CERTS, PRODUCTS, type CertId } from "@/lib/academy-data";
+import { CMETA, PRODUCTS, getVisibleCerts } from "@/lib/academy-data";
 import type { User } from "@/lib/auth";
 import {
   formatPersonalBestScore,
   getCertificationsEarnedCount,
   type CertificationModule,
 } from "@/lib/certifications";
-import type { DoneRecord, ProgressSnapshot } from "@/lib/progress";
+import { countModulesCovered, type DoneRecord, type ProgressSnapshot } from "@/lib/progress";
 import { apiUrl } from "@/lib/api";
+import {
+  fetchSyllabusByProduct,
+  getModuleCountForCert,
+  type SyllabusByProduct,
+} from "@/lib/syllabus-progress";
 
 type DashboardPageProps = {
   user: User;
 };
-
-function getVisibleCerts(team: string, certs: CertId[]) {
-  const allowed = PERSONA_CERTS[team] ?? PERSONA_CERTS.default;
-  return certs.filter((cert) => allowed.includes(cert));
-}
 
 export default function DashboardPage({ user }: DashboardPageProps) {
   const [progress, setProgress] = useState<ProgressSnapshot>({
     scores: [],
     done: {},
   });
+  const [syllabusByProduct, setSyllabusByProduct] = useState<SyllabusByProduct>({});
+  const [syllabusLoading, setSyllabusLoading] = useState(true);
+  const [progressLoading, setProgressLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,11 +57,19 @@ export default function DashboardPage({ user }: DashboardPageProps) {
           });
         }
       } finally {
-        // Progress state is updated regardless of result.
+        if (!cancelled) {
+          setProgressLoading(false);
+        }
       }
     }
 
     loadProgress();
+    fetchSyllabusByProduct().then((data) => {
+      if (!cancelled) {
+        setSyllabusByProduct(data);
+        setSyllabusLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -80,13 +91,15 @@ export default function DashboardPage({ user }: DashboardPageProps) {
       const certDone = Object.keys(userDone).filter((key) =>
         key.startsWith(`${product.id}-`) && key.endsWith(`-${certId}`)
       ).length;
-      const certTotal = product.moduleCount;
+      const certTotal = getModuleCountForCert(product.id, certId, syllabusByProduct, product.moduleCount);
       totalProgressEntries += certDone;
       return { certId, certDone, certTotal };
     });
-    totalModules += product.moduleCount * visibleCerts.length;
+    totalModules += certRows.reduce((sum, row) => sum + row.certTotal, 0);
     return { product, certRows, visibleCerts };
   });
+
+  const isLoading = syllabusLoading || progressLoading;
 
   const firstName = user.name.split(" ")[0];
   const personaLevels = getVisibleCerts(user.team, ["pathfinder", "navigator", "grandmaster"])
@@ -107,11 +120,11 @@ export default function DashboardPage({ user }: DashboardPageProps) {
 
       <div className="stats">
         <div className="stat c-purple">
-          <div className="stat-val">{totalModules}</div>
+          <div className="stat-val">{syllabusLoading ? "—" : totalModules}</div>
           <div className="stat-lbl">Modules in your program</div>
         </div>
         <div className="stat c-orange">
-          <div className="stat-val">{Object.keys(userDone).length}</div>
+          <div className="stat-val">{progressLoading ? "—" : countModulesCovered(userDone)}</div>
           <div className="stat-lbl">Modules covered</div>
         </div>
         <div className="stat c-green">
@@ -137,9 +150,9 @@ export default function DashboardPage({ user }: DashboardPageProps) {
             <div className="prog-section-head">
               <div>
                 <div className="prog-section-title">{`${product.icon} ${product.name}`}</div>
-                <div className="prog-section-sub">{`${overallDone} of ${overallTotal} module-levels completed`}</div>
+                <div className="prog-section-sub">{`${isLoading ? "—" : overallDone} of ${overallTotal} module-levels completed`}</div>
               </div>
-              <div className="prog-ring-num">{overallPct}%</div>
+              <div className="prog-ring-num">{isLoading ? "—" : `${overallPct}%`}</div>
             </div>
             <div className="prog-bars">
               {certRows.map((row) => (
@@ -148,10 +161,14 @@ export default function DashboardPage({ user }: DashboardPageProps) {
                   <div className="prog-bar-track">
                     <div
                       className="prog-bar-fill"
-                      style={{ width: `${Math.round((row.certDone / row.certTotal) * 100)}%` }}
+                      style={{
+                        width: isLoading ? "0%" : `${Math.round((row.certDone / row.certTotal) * 100)}%`,
+                      }}
                     />
                   </div>
-                  <span className="prog-bar-pct">{`${row.certDone}/${row.certTotal}`}</span>
+                  <span className="prog-bar-pct">
+                    {isLoading ? "—/—" : `${row.certDone}/${row.certTotal}`}
+                  </span>
                 </div>
               ))}
             </div>
@@ -203,7 +220,7 @@ export default function DashboardPage({ user }: DashboardPageProps) {
           );
         })}
       </div>
-      <div className="dashboard-footnote">{`Total completed module-levels: ${totalProgressEntries}`}</div>
+      <div className="dashboard-footnote">{`Total completed module-levels: ${progressLoading ? "—" : totalProgressEntries}`}</div>
     </div>
   );
 }

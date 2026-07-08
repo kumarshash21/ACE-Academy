@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
 import { createInitialCertifications } from "@/lib/certifications";
 import { isGreyOrangeEmail, normalizeEmail } from "@/lib/email-validation";
+import { countModulesCovered } from "@/lib/progress";
 
 /**
  * GET /api/firebase/users
@@ -24,6 +25,7 @@ export async function GET() {
         team: typeof data.team === "string" ? data.team : "",
         role: data.role === "admin" ? "admin" : "learner",
         certifications: Array.isArray(data.certifications) ? data.certifications : [],
+        modulesCovered: countModulesCovered(data.progress?.done),
       };
     });
 

@@ -154,13 +154,19 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation"; // Added usePathname
 import Link from "next/link";
 import logo from "../public/assets/img/GO_LOGO.jpg";
+import { isSessionExpired } from "@/lib/session";
 
 function loadSavedSession() {
   try {
     const raw = localStorage.getItem('ace2_session_user');
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (isSessionExpired(parsed)) {
+      localStorage.removeItem('ace2_session_user');
+      return null;
+    }
+    return parsed;
   } catch (_err) {
     localStorage.removeItem('ace2_session_user');
     return null;
@@ -191,7 +197,7 @@ function normalizeUser(savedUser: { name?: string; team?: string; role?: string;
 
 let cachedUser: UserType | null = null;
 
-const ADMIN_ONLY_TABS = ["manageprogram", "scores"];
+const ADMIN_ONLY_TABS = ["manageprogram", "scores", "userprogress"];
 
 export default function AppShell({ children, currentTab }: AppShellProps) {
   const router = useRouter();
@@ -223,6 +229,18 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
     }
   }, [router, pathname, currentTab]);
 
+  // Auto-logout once the 24hr session limit is reached, even if the tab is left open.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (cachedUser && !loadSavedSession()) {
+        cachedUser = null;
+        setUser(null);
+        router.push("/");
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [router]);
+
   // CRITICAL: If we have no user, and we are redirecting away from a sub-page,
   // do NOT render the layout or children. This stops the page flash completely.
   if (isCheckingAuth && pathname !== "/") {
@@ -239,7 +257,6 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
   const handleLogout = () => {
     cachedUser = null;
     localStorage.removeItem('ace2_session_user');
-    localStorage.clear();
     router.push("/");
   };
 
@@ -300,6 +317,9 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
               </Link>
               <Link href={hrefFor("scores")} prefetch className={`nav ${currentTab === "scores" ? "on" : ""}`}>
                 <span className="nav-ico">≡</span>All Scores
+              </Link>
+              <Link href={hrefFor("userprogress")} prefetch className={`nav ${currentTab === "userprogress" ? "on" : ""}`}>
+                <span className="nav-ico">◈</span>User Progress
               </Link>
             </>
           )}

@@ -53,6 +53,17 @@ interface AdminLevel {
   topics: AdminTopic[];
 }
 
+function compareModuleCode(a: string, b: string): number {
+  const aParts = (a || "").split(".").map(Number);
+  const bParts = (b || "").split(".").map(Number);
+  const len = Math.max(aParts.length, bParts.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (aParts[i] || 0) - (bParts[i] || 0);
+    if (diff) return diff;
+  }
+  return 0;
+}
+
 interface AdminSyllabusPayload {
   id: string;
   name: string;
@@ -1429,7 +1440,7 @@ export default function ManageProgram() {
                     </div>
 
                     <div className="mod-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(1fr, 1fr))', gap: '16px' }}>
-                      {topic.modules.map((mod, mIdx) => {
+                      {[...topic.modules].sort((a, b) => compareModuleCode(a.code, b.code)).map((mod, mIdx) => {
                         const moduleUniqueKey = mod.code || `${tIdx}-${mIdx}`;
                         const isExpanded = !!expandedCards[moduleUniqueKey];
                         
@@ -1460,7 +1471,7 @@ export default function ManageProgram() {
                               </div>
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); handleDeleteModule(tIdx, mIdx); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteModule(tIdx, topic.modules.indexOf(mod)); }}
                                 style={{ background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '14px', padding: '2px 4px', flexShrink: 0, transition: 'color 0.2s' }}
                                 onMouseEnter={(e) => e.currentTarget.style.color = '#f87171'}
                                 onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(239,68,68,0.5)'}

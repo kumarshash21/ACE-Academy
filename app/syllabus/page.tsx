@@ -555,6 +555,31 @@ interface Topic {
   modules: Module[];
 }
 
+function compareModuleCode(a: string, b: string): number {
+  const aParts = (a || "").split(".").map(Number);
+  const bParts = (b || "").split(".").map(Number);
+  const len = Math.max(aParts.length, bParts.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (aParts[i] || 0) - (bParts[i] || 0);
+    if (diff) return diff;
+  }
+  return 0;
+}
+
+// Reverses the "{productId}-{moduleCode}-{levelName}" key format used for
+// Firestore/localStorage persistence back into its parts. productId and
+// levelName never contain hyphens, so the first and last segments are safe
+// anchors even if a module code ever grows one.
+function parseProgressKey(key: string): { productId: string; moduleCode: string; levelName: string } | null {
+  const parts = key.split("-");
+  if (parts.length < 3) return null;
+  return {
+    productId: parts[0],
+    moduleCode: parts.slice(1, -1).join("-"),
+    levelName: parts[parts.length - 1],
+  };
+}
+
 interface Level {
   name: string;
   topics: Topic[];
@@ -572,7 +597,8 @@ export default function SyllabusPage() {
   const [syllabus, setSyllabus] = useState<SyllabusData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
-  
+  const [hoveredModule, setHoveredModule] = useState<string | null>(null);
+
   // Track completions globally across tabs and levels
   // Key format: "rtp-pathfinder::MOD_CODE" -> boolean
   const [completedModules, setCompletedModules] = useState<Record<string, boolean>>(() => {
@@ -582,6 +608,51 @@ export default function SyllabusPage() {
     }
     return {};
   });
+
+  // Hydrate completions from Firestore (source of truth) on load. The
+  // sessionStorage seed above only survives within one tab session, so
+  // without this, every fresh session would show real progress as unchecked
+  // and a stray click on an already-done module would delete it server-side.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let sessionUserRaw: string | null = null;
+    try {
+      sessionUserRaw = localStorage.getItem("ace2_session_user");
+    } catch (err) {
+      console.error("Failed to read session user for progress hydration:", err);
+      return;
+    }
+
+    let userId: string | undefined;
+    try {
+      userId = sessionUserRaw ? JSON.parse(sessionUserRaw)?.id : undefined;
+    } catch (err) {
+      console.error("Failed to parse session user for progress hydration:", err);
+      return;
+    }
+    if (!userId) return;
+
+    (async () => {
+      try {
+        const response = await fetch(apiUrl(`/api/firebase/user-progress/${userId}`));
+        if (!response.ok) return;
+        const data = await response.json();
+        const done = data?.done && typeof data.done === "object" ? data.done : {};
+
+        const hydrated: Record<string, boolean> = {};
+        Object.keys(done).forEach((key) => {
+          const parsed = parseProgressKey(key);
+          if (!parsed) return;
+          hydrated[`${parsed.productId}-${parsed.levelName}::${parsed.moduleCode}`] = true;
+        });
+
+        setCompletedModules((prev) => ({ ...hydrated, ...prev }));
+      } catch (err) {
+        console.error("Failed to load saved module progress:", err);
+      }
+    })();
+  }, []);
 
   // Fetch API payload data mapping
   useEffect(() => {
@@ -642,20 +713,23 @@ export default function SyllabusPage() {
     [globalModuleKey]: nextState,
   }));
 
-  // 2. ─── THE FIX: Sync with index.html's localStorage ───
+  // 2. ─── Sync with index.html's localStorage ───
+  const sessionUserRaw = localStorage.getItem('ace2_session_user');
+  let userId: string | undefined;
   try {
-    // Read current user ID from the active session string
-    const sessionUserRaw = localStorage.getItem('ace2_session_user');
-    if (sessionUserRaw) {
-      const user = JSON.parse(sessionUserRaw);
-      const userId = user.id;
+    userId = sessionUserRaw ? JSON.parse(sessionUserRaw)?.id : undefined;
+  } catch (err) {
+    console.error("Failed to read session user for progress sync:", err);
+  }
 
+  if (userId) {
+    // Match the native string formatting exactly: "rtp-1.1.1-pathfinder"
+    const htmlAppStructuralKey = `${activeId}-${moduleCode}-${activeLevel}`;
+
+    try {
       // Pull down the main array index map index.html reads from
       const aceDone = JSON.parse(localStorage.getItem('ace2_done') || '{}');
       if (!aceDone[userId]) aceDone[userId] = {};
-
-      // Match the native string formatting exactly: "rtp-1.1.1-pathfinder"
-      const htmlAppStructuralKey = `${activeId}-${moduleCode}-${activeLevel}`;
 
       if (nextState) {
         aceDone[userId][htmlAppStructuralKey] = new Date().toISOString();
@@ -665,20 +739,22 @@ export default function SyllabusPage() {
 
       // Save it back. This event triggers the 'storage' listener in index.html!
       localStorage.setItem('ace2_done', JSON.stringify(aceDone));
+    } catch (err) {
+      console.error("Failed to sync module progress to localStorage:", err);
     }
-  } catch (err) {
-    console.error("Failed to sync structural local logs to HTML layout:", err);
-  }
 
-  // 3. Existing database sync backend fetch
-  try {
-    await fetch(apiUrl(`/api/firebase/user/progress/${activeId}`), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moduleKey: moduleCode, level: activeLevel, completed: nextState }),
-    });
-  } catch (err) {
-    console.error("Error saving progress sync:", err);
+    try {
+      // 3. Persist to Firestore (source of truth) as a single atomic field
+      // write for just this module — no read-then-write, so it can't race
+      // with another toggle that's still in flight.
+      await fetch(apiUrl('/api/firebase/user-progress'), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: userId, moduleKey: htmlAppStructuralKey, isDone: nextState }),
+      });
+    } catch (err) {
+      console.error("Failed to sync module progress to Firestore:", err);
+    }
   }
 };
 
@@ -747,7 +823,7 @@ export default function SyllabusPage() {
               </div>
 
               <div className="mod-grid">
-                {topic.modules.map((mod, mIdx) => {
+                {[...topic.modules].sort((a, b) => compareModuleCode(a.code, b.code)).map((mod, mIdx) => {
                   const moduleUniqueKey = mod.code || `${tIdx}-${mIdx}`;
                   const isOpened = !!expandedModules[moduleUniqueKey];
                   
@@ -852,52 +928,62 @@ export default function SyllabusPage() {
                           </div>
 
                           <div style={{ marginLeft: "auto", flexShrink: 0 }}>
-                            <button
-                              type="button"
-                              disabled={isComingSoon}
-                              onClick={(e) => {
-                                if (isComingSoon) return;
-                                handleToggleComplete(e, moduleUniqueKey);
-                              }}
-                              style={{
-                                background: isCompleted ? "rgba(74, 222, 128, 0.12)" : "transparent",
-                                color: isCompleted ? "#4ade80" : "var(--text-muted, #888)",
-                                border: isCompleted ? "1px solid rgba(74, 222, 128, 0.45)" : "1px solid var(--border, #444)",
-                                padding: "6px 16px",
-                                borderRadius: "20px",
-                                fontSize: "0.85rem",
-                                cursor: isComingSoon ? "not-allowed" : "pointer",
-                                opacity: isComingSoon ? 0.5 : 1,
-                                fontWeight: 500,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                whiteSpace: "nowrap",
-                                transition: "all 0.2s ease"
-                              }}
-                              onMouseEnter={(e) => {
-                                if (isComingSoon) return;
-                                e.currentTarget.style.background = isCompleted
-                                  ? "rgba(239, 68, 68, 0.08)"
-                                  : "rgba(74, 222, 128, 0.18)";
-                                if (isCompleted) {
-                                  e.currentTarget.style.color = "#ef4444";
-                                  e.currentTarget.style.borderColor = "#ef4444";
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (isComingSoon) return;
-                                e.currentTarget.style.background = isCompleted ? "rgba(74, 222, 128, 0.12)" : "transparent";
-                                e.currentTarget.style.color = isCompleted ? "#4ade80" : "var(--text-muted, #888)";
-                                e.currentTarget.style.borderColor = isCompleted ? "rgba(74, 222, 128, 0.45)" : "1px solid var(--border, #444)";
-                              }}
-                            >
-                              {isCompleted ? (
-                                <><span>✓</span> Completed</>
-                              ) : (
-                                "Mark as Done"
-                              )}
-                            </button>
+                            {(() => {
+                              const isHovered = hoveredModule === moduleUniqueKey;
+                              const showUndo = isCompleted && isHovered;
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={isComingSoon}
+                                  onClick={(e) => {
+                                    if (isComingSoon) return;
+                                    handleToggleComplete(e, moduleUniqueKey);
+                                  }}
+                                  style={{
+                                    background: isCompleted
+                                      ? (showUndo ? "rgba(239, 68, 68, 0.08)" : "rgba(74, 222, 128, 0.12)")
+                                      : (isHovered ? "rgba(74, 222, 128, 0.18)" : "rgba(74, 222, 128, 0.08)"),
+                                    color: isCompleted
+                                      ? (showUndo ? "#ef4444" : "#4ade80")
+                                      : "#4ade80",
+                                    border: isCompleted
+                                      ? `1px solid ${showUndo ? "#ef4444" : "rgba(74, 222, 128, 0.45)"}`
+                                      : "1px solid rgba(74, 222, 128, 0.45)",
+                                    padding: "6px 16px",
+                                    borderRadius: "20px",
+                                    fontSize: "0.85rem",
+                                    cursor: isComingSoon ? "not-allowed" : "pointer",
+                                    opacity: isComingSoon ? 0.5 : 1,
+                                    fontWeight: 500,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "6px",
+                                    minWidth: "128px",
+                                    whiteSpace: "nowrap",
+                                    transition: "background-color 0.28s cubic-bezier(0.4, 0, 0.2, 1), color 0.28s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1)"
+                                  }}
+                                  onMouseEnter={() => {
+                                    if (isComingSoon) return;
+                                    setHoveredModule(moduleUniqueKey);
+                                  }}
+                                  onMouseLeave={() => {
+                                    if (isComingSoon) return;
+                                    setHoveredModule((prev) => (prev === moduleUniqueKey ? null : prev));
+                                  }}
+                                >
+                                  {isCompleted ? (
+                                    showUndo ? (
+                                      "Mark as Undone"
+                                    ) : (
+                                      <><span>✓</span> Completed</>
+                                    )
+                                  ) : (
+                                    "Mark as Done"
+                                  )}
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

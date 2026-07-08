@@ -1314,6 +1314,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
       <div class="sid-label" id="adminSec" style="display:none">Admin</div>
       <div class="nav" id="n-admin" style="display:none"><span class="nav-ico">⚙</span><a href="/ace_academy/manageprogram" target="_top">Manage Program</a></div>
       <div class="nav" id="n-scores" style="display:none"><span class="nav-ico">≡</span><a href="/ace_academy/scores" target="_top">All Scores</a></div>
+      <div class="nav" id="n-userprogress" style="display:none"><span class="nav-ico">◈</span><a href="/ace_academy/userprogress" target="_top">User Progress</a></div>
     </div>
 
     <div class="main" id="main">
@@ -1346,6 +1347,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         <div class="stat c-cyan"><div class="stat-val" id="sBest">—</div><div class="stat-lbl">Personal best score</div></div>
       </div>
       
+      <div class="ph compact"><h2 style="font-size:16px;font-weight:700">Learning Progress</h2></div>
       <div id="dashProgress" style="margin-bottom:24px"></div>
       <div id="dashJourney"></div>
     </div>
@@ -1913,6 +1915,23 @@ function gSyl(){return JSON.parse(localStorage.getItem('ace2_syl')||'{}')}
 function sSyl(d){localStorage.setItem('ace2_syl',JSON.stringify(d))}
 function gDone(){return JSON.parse(localStorage.getItem('ace2_done')||'{}')}
 function sDone(d){localStorage.setItem('ace2_done',JSON.stringify(d))}
+// ace2_done only tracks modules completed from this browser. Firestore's
+// progress.done is the real source of truth once a module is marked done
+// from the React app (or any other device), so this pulls it in before the
+// dashboard renders — otherwise a fresh browser/profile always shows 0
+// covered even though the server has real progress recorded.
+async function fetchServerDoneForUser(uid){
+  if(!uid) return null;
+  try{
+    const res=await fetch(`/ace_academy/api/firebase/user-progress/${encodeURIComponent(uid)}`);
+    if(!res.ok) return null;
+    const data=await res.json();
+    return (data && typeof data.done==='object' && data.done) ? data.done : {};
+  }catch(err){
+    console.error('Failed to load server progress:', err);
+    return null;
+  }
+}
 function gQs(){
   const stored=localStorage.getItem('ace2_questions');
   if(stored) return JSON.parse(stored);
@@ -1945,6 +1964,160 @@ async function fetchSyllabusFromAPI(id){
     console.error(`Failed to fetch syllabus ${id}:`,err);
     return null;
   }
+}
+
+// Firestore level names ("PathFinder", "Grand Master", "Tools Specialist", ...)
+// normalized the same way as the rest of the app, mapped to cert ids.
+const CERT_LEVEL_NAME={pathfinder:'pathfinder',navigator:'navigator',grandmaster:'grandmaster',toolscert:'toolsspecialist'};
+
+function countModulesByLevel(syllabus){
+  const counts={};
+  if(!syllabus || !Array.isArray(syllabus.levels)) return counts;
+  syllabus.levels.forEach(level=>{
+    const key=String(level.name||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+    counts[key]=(Array.isArray(level.topics)?level.topics:[]).reduce(
+      (sum,topic)=>sum+(Array.isArray(topic.modules)?topic.modules.length:0), 0
+    );
+  });
+  return counts;
+}
+
+/**
+ * Live per-product, per-level module counts sourced from the syllabus API
+ * (same Firestore data the admin User Progress page and Dashboard read).
+ * Returns { [productId]: { [normalizedLevelName]: count } }, or null on failure.
+ */
+async function fetchAllSyllabusCounts(){
+  try{
+    const countsByProduct={};
+    for(const p of PRODUCTS){
+      const syllabus=await fetchSyllabusFromAPI(p.id);
+      countsByProduct[p.id]=countModulesByLevel(syllabus);
+    }
+    return countsByProduct;
+  }catch(err){
+    console.error('Failed to fetch live syllabus counts:',err);
+    return null;
+  }
+}
+
+/**
+ * Live "modules in program" total for a team, sourced from the syllabus API.
+ */
+async function getModulesInProgramLive(){
+  const countsByProduct=await fetchAllSyllabusCounts();
+  if(!countsByProduct) return null;
+  try{
+    let total=0;
+    PRODUCTS.forEach(p=>{
+      const counts=countsByProduct[p.id]||{};
+      const vc=getVisibleCerts(p);
+      vc.forEach(cert=>{ total+=counts[CERT_LEVEL_NAME[cert]]||0; });
+    });
+    return total;
+  }catch(err){
+    console.error('Failed to compute live module total:',err);
+    return null;
+  }
+}
+
+/**
+ * Renders a placeholder version of the Learning Progress cards (dashes in
+ * place of every number) so the section keeps its final shape instead of
+ * collapsing to a "Loading…" line while the live syllabus counts load.
+ */
+function renderProgressSkeleton(){
+  let progHtml='';
+  PRODUCTS.forEach(prod=>{
+    const visibleCerts=getVisibleCerts(prod);
+    const certRows=visibleCerts.map(cid=>{
+      const m=CMETA[cid];
+      return `<div class="prog-bar-row">
+        <span class="prog-bar-label">${m.icon} ${m.name}</span>
+        <div class="prog-bar-track"><div class="prog-bar-fill" style="width:0%"></div></div>
+        <span class="prog-bar-pct">—/—</span>
+      </div>`;
+    }).join('');
+    progHtml+=`<div class="prog-section">
+      <div class="prog-section-head">
+        <div>
+          <div class="prog-section-title">${prod.icon} ${prod.name}</div>
+          <div class="prog-section-sub">— of — module-levels completed</div>
+        </div>
+        <div class="prog-ring">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="32" stroke="var(--surface3)" stroke-width="7" fill="none"/>
+          </svg>
+          <div class="prog-ring-num" style="color:var(--text3)">—</div>
+        </div>
+      </div>
+      <div class="prog-bars">${certRows}</div>
+    </div>`;
+  });
+  const el=document.getElementById('dashProgress');
+  if(el) el.innerHTML=progHtml;
+}
+
+/**
+ * Renders the "Learning Progress" bars + rings for #dashProgress.
+ * countsByProduct (from fetchAllSyllabusCounts) supplies live per-level module
+ * totals — this is only called once that data is available, so the section
+ * never shows a curriculum-size estimate in place of the real per-level counts.
+ * certDone is counted directly from userDone keys (not the static PRODUCTS
+ * module list) so newly-added modules are reflected without a code change.
+ */
+function renderProgressSection(userDone, countsByProduct){
+  const CERT_COLORS={pathfinder:'#A78BFA',navigator:'#67E8F9',grandmaster:'#FCD34D',toolscert:'#6EE7B7'};
+  let progHtml='';
+
+  PRODUCTS.forEach(prod=>{
+    const liveCounts=countsByProduct[prod.id]||{};
+    let prodDone=0,overallTotal=0;
+    const visibleCerts=getVisibleCerts(prod);
+    const certRows=visibleCerts.map(cid=>{
+      const m=CMETA[cid];
+      const certMods=liveCounts[CERT_LEVEL_NAME[cid]]||0;
+      const certDone=Object.keys(userDone).filter(key=>
+        key.startsWith(`${prod.id}-`)&&key.endsWith(`-${cid}`)
+      ).length;
+      prodDone+=certDone;
+      overallTotal+=certMods;
+      const pct=certMods?Math.round((certDone/certMods)*100):0;
+      const col=CERT_COLORS[cid]||'#A78BFA';
+      return `<div class="prog-bar-row">
+        <span class="prog-bar-label">${m.icon} ${m.name}</span>
+        <div class="prog-bar-track"><div class="prog-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span class="prog-bar-pct" style="color:${col}">${certDone}/${certMods}</span>
+      </div>`;
+    }).join('');
+
+    // Overall ring for this product
+    const overallPct=overallTotal?Math.round((prodDone/overallTotal)*100):0;
+    const r=32,circ=2*Math.PI*r;
+    const dash=circ*(overallPct/100);
+    const ringCol=overallPct===100?'#6EE7B7':overallPct>50?'#67E8F9':'#A78BFA';
+
+    progHtml+=`<div class="prog-section">
+      <div class="prog-section-head">
+        <div>
+          <div class="prog-section-title">${prod.icon} ${prod.name}</div>
+          <div class="prog-section-sub">${prodDone} of ${overallTotal} module-levels completed</div>
+        </div>
+        <div class="prog-ring">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="${r}" stroke="var(--surface3)" stroke-width="7" fill="none"/>
+            <circle cx="40" cy="40" r="${r}" stroke="${ringCol}" stroke-width="7" fill="none"
+              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+              stroke-linecap="round" style="transition:stroke-dasharray .6s ease"/>
+          </svg>
+          <div class="prog-ring-num" style="color:${ringCol}">${overallPct}%</div>
+        </div>
+      </div>
+      <div class="prog-bars">${certRows}</div>
+    </div>`;
+  });
+
+  document.getElementById('dashProgress').innerHTML=progHtml;
 }
 
 /**
@@ -2191,12 +2364,19 @@ function toggleLoginPassword(){
   toggle.setAttribute('aria-label',showing?'Show password':'Hide password');
 }
 
+const SESSION_MAX_AGE_MS=24*60*60*1000; // auto-logout 24hrs after login
+
 function loadSavedSession(){
   try{
     const raw=localStorage.getItem('ace2_session_user');
     if(!raw) return null;
     const parsed=JSON.parse(raw);
-    return parsed && typeof parsed==='object' ? parsed : null;
+    if(!parsed || typeof parsed!=='object') return null;
+    if(typeof parsed.loginAt==='number' && Date.now()-parsed.loginAt>SESSION_MAX_AGE_MS){
+      localStorage.removeItem('ace2_session_user');
+      return null;
+    }
+    return parsed;
   }catch(_err){
     localStorage.removeItem('ace2_session_user');
     return null;
@@ -2229,6 +2409,7 @@ async function doLogin(){
     try{
       const cred=await fbAuth.signInWithEmailAndPassword(em,pw);
       CU=await hydrateUserFromFirestore(cred.user);
+      CU.loginAt=Date.now();
       saveSessionUser(CU);
       document.getElementById('loginScreen').style.display='none';
       initApp();
@@ -2254,6 +2435,7 @@ async function doLogin(){
   const u=allUsers.find(x=>x.email.toLowerCase()===em&&x.password===pw);
   if(!u){showLoginError('Incorrect email or password. Please try again.');return}
   CU=u;
+  CU.loginAt=Date.now();
   saveSessionUser(CU);
   document.getElementById('loginScreen').style.display='none';
   initApp();
@@ -2268,6 +2450,7 @@ async function doLogout(){
   document.getElementById('adminSec').style.display='none';
   document.getElementById('n-admin').style.display='none';
   document.getElementById('n-scores').style.display='none';
+  document.getElementById('n-userprogress').style.display='none';
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('app').style.display='none';
   document.getElementById('loginEmail').value='';
@@ -2275,6 +2458,13 @@ async function doLogout(){
   document.getElementById('loginErr').style.display='none';
 }
 document.getElementById('loginPwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+
+// Auto-logout once the 24hr session limit is reached, even if the tab is left open.
+setInterval(function(){
+  if(CU && !loadSavedSession()){
+    doLogout();
+  }
+},60*1000);
 
 const restoredUser=loadSavedSession();
 if(restoredUser){
@@ -2300,10 +2490,12 @@ function initApp(){
   document.getElementById('adminSec').style.display='none';
   document.getElementById('n-admin').style.display='none';
   document.getElementById('n-scores').style.display='none';
+  document.getElementById('n-userprogress').style.display='none';
   if(CU.role==='admin'){
     document.getElementById('adminSec').style.display='block';
     document.getElementById('n-admin').style.display='flex';
     document.getElementById('n-scores').style.display='flex';
+    document.getElementById('n-userprogress').style.display='flex';
   }
   goPage('dash');
 }
@@ -2391,77 +2583,43 @@ function rDash(){
   const bestScore=getPersonalBestScore(certifications);
   const best=bestScore!==null?bestScore+'%':'—';
   const done=gDone();
-  const userDone=done[CU.id]||{};
+  let userDone=done[CU.id]||{};
 
-  // Count all modules across all products & levels
-  let totalMods=0;
-  PRODUCTS.forEach(p=>{
-    const vc=getVisibleCerts(p);
-    p.sections.forEach(s=>{ totalMods+=s.mods.length*vc.length; });
-  });
-  const coveredCount=Object.keys(userDone).length;
-
-  animateCount(document.getElementById('sTot'),totalMods);
-  document.getElementById('sCovered').textContent=coveredCount;
+  // "Modules in your program" and the Learning Progress section both depend on
+  // live per-level syllabus counts from Firestore. Rather than paint a static
+  // curriculum-size estimate first (which can be far off from the real
+  // per-level counts and produces a jarring jump once corrected), leave them
+  // on the "—" / loading placeholder until the real data arrives.
+  document.getElementById('sCovered').textContent=Object.keys(userDone).length;
   document.getElementById('sEarned').textContent=earnedCount;
   document.getElementById('sBest').textContent=best;
 
-  // ── PROGRESS SECTION ──
-  const CERT_COLORS={pathfinder:'#A78BFA',navigator:'#67E8F9',grandmaster:'#FCD34D',toolscert:'#6EE7B7'};
-  let progHtml='<div class="ph" style="margin-bottom:14px"><h2 style="font-size:16px;font-weight:700">Learning Progress</h2></div>';
+  renderProgressSkeleton();
 
-  PRODUCTS.forEach(prod=>{
-    const prodTotal=prod.sections.reduce((a,s)=>a+s.mods.length,0);
-    let prodDone=0;
-    const visibleCerts=getVisibleCerts(prod);
-    const certRows=visibleCerts.map(cid=>{
-      const m=CMETA[cid];
-      const certMods=prod.sections.reduce((a,s)=>a+s.mods.length,0);
-      let certDone=0;
-      prod.sections.forEach(sec=>{
-        sec.mods.forEach(mod=>{
-          const key=`${prod.id}-${mod.code}-${cid}`;
-          if(userDone[key]) certDone++;
-        });
-      });
-      prodDone+=certDone;
-      const pct=certMods?Math.round((certDone/certMods)*100):0;
-      const col=CERT_COLORS[cid]||'#A78BFA';
-      return `<div class="prog-bar-row">
-        <span class="prog-bar-label">${m.icon} ${m.name}</span>
-        <div class="prog-bar-track"><div class="prog-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-        <span class="prog-bar-pct" style="color:${col}">${certDone}/${certMods}</span>
-      </div>`;
-    }).join('');
+  fetchServerDoneForUser(CU.id).then(serverDone=>{
+    if(serverDone){
+      // Firestore is the single source of truth once it's back — don't merge
+      // in the local echo, or a stale local key (e.g. undone from another
+      // device/tab) would keep counting as done forever.
+      userDone=serverDone;
+      const doneAll=gDone();
+      doneAll[CU.id]=userDone;
+      sDone(doneAll);
+      document.getElementById('sCovered').textContent=Object.keys(userDone).length;
+    }
 
-    // Overall ring for this product
-    const overallTotal=prodTotal*visibleCerts.length;
-    const overallPct=overallTotal?Math.round((prodDone/overallTotal)*100):0;
-    const r=32,circ=2*Math.PI*r;
-    const dash=circ*(overallPct/100);
-    const ringCol=overallPct===100?'#6EE7B7':overallPct>50?'#67E8F9':'#A78BFA';
-
-    progHtml+=`<div class="prog-section">
-      <div class="prog-section-head">
-        <div>
-          <div class="prog-section-title">${prod.icon} ${prod.name}</div>
-          <div class="prog-section-sub">${prodDone} of ${overallTotal} module-levels completed</div>
-        </div>
-        <div class="prog-ring">
-          <svg width="80" height="80" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="${r}" stroke="var(--surface3)" stroke-width="7" fill="none"/>
-            <circle cx="40" cy="40" r="${r}" stroke="${ringCol}" stroke-width="7" fill="none"
-              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
-              stroke-linecap="round" style="transition:stroke-dasharray .6s ease"/>
-          </svg>
-          <div class="prog-ring-num" style="color:${ringCol}">${overallPct}%</div>
-        </div>
-      </div>
-      <div class="prog-bars">${certRows}</div>
-    </div>`;
+    fetchAllSyllabusCounts().then(countsByProduct=>{
+      if(countsByProduct && document.getElementById('dashProgress')){
+        renderProgressSection(userDone, countsByProduct);
+      }
+    });
   });
 
-  document.getElementById('dashProgress').innerHTML=progHtml;
+  getModulesInProgramLive().then(liveTotal=>{
+    if(liveTotal!=null && document.getElementById('sTot')){
+      animateCount(document.getElementById('sTot'),liveTotal);
+    }
+  });
 
   // ── CERTIFICATION JOURNEY ──
   window.routeTo = function(path) {

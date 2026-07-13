@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminDb } from "@/lib/firebaseAdmin";
 import { randomUUID } from "crypto"; // Use native Node.js crypto module
 import { BackendApiError, fetchBackendJson } from "@/lib/backendApi";
 
@@ -8,9 +6,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const quizId = searchParams.get("quizId");
-
-    const db = getAdminDb();
-    const collectionRef = db.collection("assessments");
 
     // Scenario A: Fetch a specific quiz
     if (quizId) {
@@ -21,32 +16,12 @@ export async function GET(request: Request) {
         if (backendError instanceof BackendApiError && backendError.status === 404) {
           return NextResponse.json({ error: `Assessment with ID '${quizId}' not found.` }, { status: 404 });
         }
-        // Any other backend failure — fall through to Firestore.
+        throw backendError;
       }
-
-      const docSnap = await collectionRef.doc(quizId).get();
-
-      if (!docSnap.exists) {
-        return NextResponse.json({ error: `Assessment with ID '${quizId}' not found.` }, { status: 404 });
-      }
-
-      return NextResponse.json({ id: docSnap.id, ...docSnap.data() });
     }
 
     // Scenario B: Fetch all quizzes if no specific quizId is provided
-    try {
-      const { assessments } = await fetchBackendJson<{ assessments: unknown[] }>("/api/assessments");
-      return NextResponse.json({ assessments });
-    } catch {
-      // Fall through to Firestore below.
-    }
-
-    const snapshot = await collectionRef.get();
-    const assessments = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
+    const { assessments } = await fetchBackendJson<{ assessments: unknown[] }>("/api/assessments");
     return NextResponse.json({ assessments });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
@@ -107,33 +82,10 @@ export async function POST(request: Request) {
       id: q.id || randomUUID(), // Uses existing unique ID if provided, otherwise generates a standard native UUIDv4
     }));
 
-    try {
-      await fetchBackendJson(`/api/assessments/${encodeURIComponent(quizId)}`, {
-        method: "PUT",
-        body: JSON.stringify({ totalMarks, passingPercentage, timeLimit, questions: questionsWithIds }),
-      });
-      return NextResponse.json({ ok: true, message: `Assessment '${quizId}' successfully updated/created.` });
-    } catch {
-      // Fall through to Firestore below.
-    }
-
-    // Save to Firestore using the quizId as the document ID
-    await getAdminDb()
-      .collection("assessments")
-      .doc(quizId)
-      .set(
-        {
-          quizId,
-          totalMarks,
-          passingPercentage,
-          timeLimit,
-          questions: questionsWithIds, // Save the updated questions array with unique IDs
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true } // Merges if doc exists, creates if it doesn't
-      );
-
+    await fetchBackendJson(`/api/assessments/${encodeURIComponent(quizId)}`, {
+      method: "PUT",
+      body: JSON.stringify({ totalMarks, passingPercentage, timeLimit, questions: questionsWithIds }),
+    });
     return NextResponse.json({ ok: true, message: `Assessment '${quizId}' successfully updated/created.` });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";

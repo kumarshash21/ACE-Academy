@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebaseAdmin";
 import { fetchBackendJson } from "@/lib/backendApi";
 
 const PERSONA_CERTS: Record<string, string[]> = {
@@ -40,27 +39,13 @@ export async function GET(request: NextRequest) {
         certifications: allowedCerts,
       });
     } catch {
-      // Not yet migrated, or a backend/network failure — fall through to Firestore.
-    }
-
-    const teamDoc = await getAdminDb().collection("teamPolicies").doc(team).get();
-
-    if (!teamDoc.exists) {
+      // No policy row for this team yet — default to the team's full allowed count.
       return NextResponse.json({
         team,
         allowedLevel: allowedLevelCount,
         certifications: allowedCerts,
-      }, { status: 200 });
+      });
     }
-
-    const data = teamDoc.data();
-    return NextResponse.json({
-      team,
-      allowedLevel: typeof data?.allowedLevel === "number"
-        ? Math.min(data.allowedLevel, allowedLevelCount)
-        : allowedLevelCount,
-      certifications: allowedCerts,
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });

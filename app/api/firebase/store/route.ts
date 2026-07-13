@@ -1,40 +1,23 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminDb } from "@/lib/firebaseAdmin";
 
-type Body = {
-  collection: string;
-  docId: string;
-  data: Record<string, unknown>;
-  merge?: boolean;
-};
-
-export async function POST(request: Request) {
-  try {
-    const body = (await request.json()) as Body;
-    const { collection, docId, data, merge = true } = body;
-
-    if (!collection || !docId || !data || typeof data !== "object") {
-      return NextResponse.json(
-        { error: "collection, docId, and data are required." },
-        { status: 400 }
-      );
-    }
-
-    await getAdminDb()
-      .collection(collection)
-      .doc(docId)
-      .set(
-        {
-          ...data,
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge }
-      );
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown server error";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+/**
+ * POST /api/firebase/store
+ *
+ * Was a generic escape hatch for arbitrary Firestore writes
+ * (`{collection, docId, data}` -> any doc, any shape). Postgres has a fixed
+ * relational schema, so there's no equivalent generic write — every table
+ * now has its own typed endpoint (see the other modules under
+ * ACE-Academy-backend/src/modules/). No caller in this repo used this route;
+ * kept as a stub (instead of deleted) in case something external still
+ * points at it, so that caller gets a clear error instead of a silent 404
+ * or a write that goes nowhere.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        "This endpoint is deprecated: arbitrary-collection writes have no Postgres equivalent. Use the typed endpoint for the resource you're writing.",
+    },
+    { status: 410 }
+  );
 }

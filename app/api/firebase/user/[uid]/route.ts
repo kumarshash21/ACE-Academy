@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
+import { getAdminAuth } from "@/lib/firebaseAdmin";
 import { BackendApiError, fetchBackendJson } from "@/lib/backendApi";
 
 export async function GET(
@@ -14,7 +13,6 @@ export async function GET(
       return NextResponse.json({ error: "uid is required." }, { status: 400 });
     }
 
-    // Backend-primary: try the Postgres-backed combined profile endpoint first.
     try {
       const profile = await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}/profile`);
       return NextResponse.json(profile);
@@ -22,16 +20,8 @@ export async function GET(
       if (backendError instanceof BackendApiError && backendError.status === 404) {
         return NextResponse.json({ error: "User profile not found." }, { status: 404 });
       }
-      // Any other backend failure (network error, 5xx, misconfiguration) — fall through to Firestore.
+      throw backendError;
     }
-
-    const userDoc = await getAdminDb().collection("users").doc(uid).get();
-
-    if (!userDoc.exists) {
-      return NextResponse.json({ error: "User profile not found." }, { status: 404 });
-    }
-
-    return NextResponse.json(userDoc.data());
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -75,27 +65,12 @@ export async function PATCH(
       );
     }
 
-    let wrote = false;
-    try {
-      await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-      wrote = true;
-    } catch {
-      // Fall through to Firestore below.
-    }
+    await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
 
-    if (!wrote) {
-      const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
-      if (typeof body.name === "string" && body.name.trim()) updates.name = body.name.trim();
-      if (body.role === "admin" || body.role === "learner") updates.role = body.role;
-      if (typeof body.team === "string" && body.team.trim()) updates.team = body.team.trim();
-
-      await getAdminDb().collection("users").doc(uid).set(updates, { merge: true });
-    }
-
-    // Keep the Auth display name in sync when the name changes, regardless of which store wrote it.
+    // Keep the Auth display name in sync with the profile update.
     if (typeof body.name === "string" && body.name.trim()) {
       try {
         await getAdminAuth().updateUser(uid, { displayName: body.name.trim() });
@@ -114,8 +89,7 @@ export async function PATCH(
 /**
  * DELETE /api/firebase/user/[uid]
  *
- * Removes the user's profile (backend-primary, Firestore-fallback) and the
- * Firebase Auth login.
+ * Removes the user's Postgres profile and the Firebase Auth login.
  */
 export async function DELETE(
   _request: Request,
@@ -128,23 +102,13 @@ export async function DELETE(
       return NextResponse.json({ error: "uid is required." }, { status: 400 });
     }
 
-    let deleted = false;
-    try {
-      await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, { method: "DELETE" });
-      deleted = true;
-    } catch {
-      // Fall through to Firestore below.
-    }
-
-    if (!deleted) {
-      await getAdminDb().collection("users").doc(uid).delete();
-    }
+    await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, { method: "DELETE" });
 
     try {
       await getAdminAuth().deleteUser(uid);
     } catch (authError) {
       const code = (authError as { code?: string })?.code;
-      // Tolerate a missing Auth record (Firestore-only / already-removed user).
+      // Tolerate a missing Auth record (already-removed user).
       if (code !== "auth/user-not-found") {
         throw authError;
       }

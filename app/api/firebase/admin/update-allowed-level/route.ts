@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminDb } from "@/lib/firebaseAdmin";
 import { fetchBackendJson } from "@/lib/backendApi";
 
 type Body = {
@@ -21,23 +19,10 @@ export async function POST(request: Request) {
       );
     }
 
-    try {
-      await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ allowedLevel, allowedLevelSource: "individual", updatedBy }),
-      });
-    } catch {
-      const userRef = getAdminDb().collection("users").doc(uid);
-      await userRef.set(
-        {
-          allowedLevel,
-          allowedLevelSource: "individual",
-          updatedAt: FieldValue.serverTimestamp(),
-          updatedBy: updatedBy ?? "admin",
-        },
-        { merge: true }
-      );
-    }
+    await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ allowedLevel, allowedLevelSource: "individual", updatedBy }),
+    });
 
     return NextResponse.json({
       ok: true,

@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminDb } from "@/lib/firebaseAdmin";
 import { fetchBackendJson } from "@/lib/backendApi";
 
 type SyllabusPayload = {
@@ -20,29 +18,10 @@ export async function POST(request: Request) {
       );
     }
 
-    try {
-      await fetchBackendJson(`/api/courses/${encodeURIComponent(id)}/syllabus`, {
-        method: "PUT",
-        body: JSON.stringify(body.product),
-      });
-      return NextResponse.json({ ok: true, id, product: body.product });
-    } catch {
-      // Fall through to Firestore below.
-    }
-
-    await getAdminDb()
-      .collection("syllabi")
-      .doc(id)
-      .set(
-        {
-          ...body.product,
-          id,
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
+    await fetchBackendJson(`/api/courses/${encodeURIComponent(id)}/syllabus`, {
+      method: "PUT",
+      body: JSON.stringify(body.product),
+    });
     return NextResponse.json({ ok: true, id, product: body.product });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";

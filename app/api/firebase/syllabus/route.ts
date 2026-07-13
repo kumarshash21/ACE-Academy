@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 type SyllabusPayload = {
   id?: string;
@@ -17,6 +18,16 @@ export async function POST(request: Request) {
         { error: "id and product payload are required." },
         { status: 400 }
       );
+    }
+
+    try {
+      await fetchBackendJson(`/api/courses/${encodeURIComponent(id)}/syllabus`, {
+        method: "PUT",
+        body: JSON.stringify(body.product),
+      });
+      return NextResponse.json({ ok: true, id, product: body.product });
+    } catch {
+      // Fall through to Firestore below.
     }
 
     await getAdminDb()

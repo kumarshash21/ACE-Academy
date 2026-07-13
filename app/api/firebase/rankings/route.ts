@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchBackendJson } from "@/lib/backendApi";
+
+type ExpandedUser = {
+  uid: string;
+  name: string;
+  team: string;
+  role: "admin" | "learner";
+  av: string;
+  certifications: unknown[];
+};
 
 /**
  * GET /api/firebase/rankings
@@ -10,6 +20,22 @@ import { getAdminDb } from "@/lib/firebaseAdmin";
  */
 export async function GET() {
   try {
+    try {
+      const { users } = await fetchBackendJson<{ users: ExpandedUser[] }>("/api/users?expand=full");
+      return NextResponse.json({
+        users: users.map(({ uid, name, team, role, av, certifications }) => ({
+          uid,
+          name,
+          team,
+          role,
+          av,
+          certifications,
+        })),
+      });
+    } catch {
+      // Fall through to Firestore below.
+    }
+
     const snapshot = await getAdminDb().collection("users").get();
 
     const users = snapshot.docs.map((doc) => {

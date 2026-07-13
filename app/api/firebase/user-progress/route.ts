@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import type { ScoreRecord } from "@/lib/progress";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 type ProgressUpdateBody = {
   uid: string;
@@ -18,6 +19,45 @@ export async function POST(request: Request) {
 
     if (!uid) {
       return NextResponse.json({ error: "uid is required." }, { status: 400 });
+    }
+
+    // `scores` has no Postgres home yet (unused elsewhere in the app) — go
+    // straight to Firestore rather than silently dropping it.
+    const scoresProvided = Array.isArray(scores);
+
+    if (!scoresProvided && typeof moduleKey === "string" && moduleKey) {
+      try {
+        if (isDone) {
+          await fetchBackendJson(
+            `/api/progress/${encodeURIComponent(uid)}/${encodeURIComponent(moduleKey)}`,
+            { method: "PUT", body: JSON.stringify({ completedAt: new Date().toISOString() }) }
+          );
+        } else {
+          await fetchBackendJson(
+            `/api/progress/${encodeURIComponent(uid)}/${encodeURIComponent(moduleKey)}`,
+            { method: "DELETE" }
+          );
+        }
+        return NextResponse.json({ ok: true });
+      } catch {
+        // Fall through to Firestore below.
+      }
+    }
+
+    if (!scoresProvided && typeof done === "object" && done) {
+      try {
+        await Promise.all(
+          Object.entries(done).map(([moduleCode, completedAt]) =>
+            fetchBackendJson(
+              `/api/progress/${encodeURIComponent(uid)}/${encodeURIComponent(moduleCode)}`,
+              { method: "PUT", body: JSON.stringify({ completedAt }) }
+            )
+          )
+        );
+        return NextResponse.json({ ok: true, progress: { done, scores: [] } });
+      } catch {
+        // Fall through to Firestore below (all-or-nothing — no partial cross-store writes).
+      }
     }
 
     const userRef = getAdminDb().collection("users").doc(uid);

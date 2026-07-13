@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 type ModuleProgressUpdate = {
   levelName: string;
@@ -29,7 +30,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate each update has required fields
     for (const update of updates) {
       if (!update.levelName || !update.moduleName) {
         return NextResponse.json(
@@ -39,7 +39,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get current user document
+    try {
+      await Promise.all(
+        updates.map((update) =>
+          fetchBackendJson(
+            `/api/certifications/${encodeURIComponent(uid)}/${encodeURIComponent(update.moduleName)}/${encodeURIComponent(update.levelName)}`,
+            {
+              method: "PUT",
+              body: JSON.stringify({
+                score: update.score,
+                status: update.status,
+                noOfAttempts: update.noOfAttempts,
+                lastAttemptDate: update.lastAttemptDate,
+                attemptedTime: update.attemptedTime,
+              }),
+            }
+          )
+        )
+      );
+
+      return NextResponse.json({ ok: true, message: "Module progress updated successfully." });
+    } catch {
+      // Fall through to Firestore below.
+    }
+
     const userDoc = await getAdminDb().collection("users").doc(uid).get();
     if (!userDoc.exists) {
       return NextResponse.json(
@@ -51,7 +74,6 @@ export async function POST(request: NextRequest) {
     const userData = userDoc.data();
     let certifications = userData?.certifications || [];
 
-    // Apply updates to certifications
     for (const update of updates) {
       certifications = certifications.map((cert: any) => {
         if (cert.module_name !== update.moduleName) {
@@ -80,7 +102,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update user document
     await getAdminDb()
       .collection("users")
       .doc(uid)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import type { ProgressSnapshot } from "@/lib/progress";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 export async function GET(
   _request: Request,
@@ -11,6 +12,15 @@ export async function GET(
 
     if (!uid) {
       return NextResponse.json({ error: "uid is required." }, { status: 400 });
+    }
+
+    try {
+      const snapshot = await fetchBackendJson<ProgressSnapshot>(
+        `/api/progress/${encodeURIComponent(uid)}`
+      );
+      return NextResponse.json(snapshot);
+    } catch {
+      // Fall through to Firestore below.
     }
 
     const userDoc = await getAdminDb().collection("users").doc(uid).get();

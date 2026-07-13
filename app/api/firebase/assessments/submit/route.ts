@@ -4,6 +4,7 @@ import { VALID_QUIZ_IDS } from "@/lib/assessment-mapping";
 import { applyAssessmentResult } from "@/lib/apply-assessment-result";
 import type { CertificationModule } from "@/lib/certifications";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 type SubmitBody = {
   uid?: string;
@@ -34,6 +35,16 @@ export async function POST(request: Request) {
 
     if (attemptedTimeSeconds < 0) {
       return NextResponse.json({ error: "attemptedTimeSeconds must be non-negative." }, { status: 400 });
+    }
+
+    try {
+      const result = await fetchBackendJson(`/api/assessments/${encodeURIComponent(quizId)}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ user_id: uid, score, attemptedTimeSeconds }),
+      });
+      return NextResponse.json(result);
+    } catch {
+      // Fall through to Firestore below.
     }
 
     const db = getAdminDb();

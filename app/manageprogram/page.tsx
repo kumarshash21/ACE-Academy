@@ -556,7 +556,7 @@ export default function ManageProgram() {
 
       setCurrentSyllabusData(clonedData);
       setIsLnkModalOpen(false);
-      showAlert('Resource link updated and synchronized to Firestore successfully!', 'success');
+      showAlert('Resource link updated successfully!', 'success');
     } catch (err: any) {
       console.error("Syllabus sync execution failure detailed trace:", err);
       showAlert(`Syllabus asset synchronization failure: ${err.message}`, 'error');
@@ -640,7 +640,7 @@ export default function ManageProgram() {
 
       setCurrentSyllabusData(clonedData);
       setIsDescModalOpen(false);
-      showAlert('Module summary description optimized and synchronized to production Firestore!', 'success');
+      showAlert('Module description updated successfully!', 'success');
     } catch (err: any) {
       console.error("Module summary trace error sync:", err);
       showAlert(`Failed to update core module architecture content: ${err.message}`, 'error');

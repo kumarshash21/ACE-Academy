@@ -1,48 +1,63 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminDb } from "@/lib/firebaseAdmin";
-import { randomUUID } from "crypto"; // Use native Node.js crypto module
+import { randomUUID } from "crypto";
+import { BackendApiError, fetchBackendJson } from "@/lib/backendApi";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json({ error: "Assessment id is required." }, { status: 400 });
+    }
+
+    try {
+      const assessment = await fetchBackendJson(`/api/assessments/${encodeURIComponent(id)}`);
+      return NextResponse.json(assessment);
+    } catch (backendError) {
+      if (backendError instanceof BackendApiError && backendError.status === 404) {
+        return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
+      }
+      throw backendError;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 type Question = {
-  id: string; // Unique identifier for each question
+  id: string;
   questionText: string;
   options: string[];
   correctAnswer: string;
 };
 
-// Input type might not include the ID yet if it's coming from a frontend form
 type IncomingQuestion = Omit<Question, "id"> & { id?: string };
 
 type AssessmentPayload = {
-  quizId: 
-    | "ttp-pathfinder" | "ttp-navigator" | "ttp-grandmaster"
-    | "rtp-navigator" | "rtp-grandmaster" | "rtp-pathfinder" 
-    | "tools-specialist"
   totalMarks: number;
   passingPercentage: number;
   timeLimit: number;
-  questions: IncomingQuestion[]; // Accepts questions with or without IDs initially
+  questions: IncomingQuestion[];
 };
 
-export async function POST(request: Request) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const body = (await request.json()) as AssessmentPayload;
-    const { quizId, totalMarks, passingPercentage, timeLimit, questions } = body;
+    const { id } = await params;
 
-    // Validate allowed quiz IDs
-    const validIds = [
-      "ttp-pathfinder", "ttp-navigator", "ttp-grandmaster", 
-      "rtp-navigator", "rtp-grandmaster", "rtp-pathfinder", 
-      "tools-specialist"
-    ];
-    if (!quizId || !validIds.includes(quizId)) {
-      return NextResponse.json(
-        { error: "Invalid or missing quizId. Must be one of the allowed quiz IDs." },
-        { status: 400 }
-      );
+    if (!id) {
+      return NextResponse.json({ error: "Assessment id is required." }, { status: 400 });
     }
 
-    // Validate remaining fields
+    const body = (await request.json()) as AssessmentPayload;
+    const { totalMarks, passingPercentage, timeLimit, questions } = body;
+
     if (totalMarks === undefined || passingPercentage === undefined || timeLimit === undefined || !Array.isArray(questions)) {
       return NextResponse.json(
         { error: "Missing required fields: totalMarks, passingPercentage, timeLimit, or questions array." },
@@ -50,30 +65,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Map over questions to ensure every single one has a unique ID natively
     const questionsWithIds: Question[] = questions.map((q) => ({
       ...q,
-      id: q.id || randomUUID(), // Uses existing unique ID if provided, otherwise generates a standard native UUIDv4
+      id: q.id || randomUUID(),
     }));
 
-    // Save to Firestore using the quizId as the document ID
-    await getAdminDb()
-      .collection("assessments")
-      .doc(quizId)
-      .set(
-        {
-          quizId,
-          totalMarks,
-          passingPercentage,
-          timeLimit,
-          questions: questionsWithIds, // Save the updated questions array with unique IDs
-          createdAt: FieldValue.serverTimestamp(), 
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true } // Merges if doc exists, creates if it doesn't
-      );
-
-    return NextResponse.json({ ok: true, message: `Assessment '${quizId}' successfully updated/created.` });
+    await fetchBackendJson(`/api/assessments/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ totalMarks, passingPercentage, timeLimit, questions: questionsWithIds }),
+    });
+    return NextResponse.json({ ok: true, message: `Assessment '${id}' successfully updated/created.` });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });

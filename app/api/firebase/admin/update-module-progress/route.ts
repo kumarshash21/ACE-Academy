@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 type ModuleProgressUpdate = {
   levelName: string;
@@ -20,7 +20,7 @@ type RequestBody = {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as RequestBody;
-    const { uid, updates, updatedBy } = body;
+    const { uid, updates } = body;
 
     if (!uid || !Array.isArray(updates) || updates.length === 0) {
       return NextResponse.json(
@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate each update has required fields
     for (const update of updates) {
       if (!update.levelName || !update.moduleName) {
         return NextResponse.json(
@@ -39,61 +38,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get current user document
-    const userDoc = await getAdminDb().collection("users").doc(uid).get();
-    if (!userDoc.exists) {
-      return NextResponse.json(
-        { error: "User not found." },
-        { status: 404 }
-      );
-    }
+    await Promise.all(
+      updates.map((update) =>
+        fetchBackendJson(
+          `/api/certifications/${encodeURIComponent(uid)}/${encodeURIComponent(update.moduleName)}/${encodeURIComponent(update.levelName)}`,
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              score: update.score,
+              status: update.status,
+              noOfAttempts: update.noOfAttempts,
+              lastAttemptDate: update.lastAttemptDate,
+              attemptedTime: update.attemptedTime,
+            }),
+          }
+        )
+      )
+    );
 
-    const userData = userDoc.data();
-    let certifications = userData?.certifications || [];
-
-    // Apply updates to certifications
-    for (const update of updates) {
-      certifications = certifications.map((cert: any) => {
-        if (cert.module_name !== update.moduleName) {
-          return cert;
-        }
-
-        return {
-          ...cert,
-          levels: Array.isArray(cert.levels)
-            ? cert.levels.map((level: any) => {
-                if (level.level_name !== update.levelName) {
-                  return level;
-                }
-
-                return {
-                  ...level,
-                  ...(update.score !== undefined && { score: update.score }),
-                  ...(update.status !== undefined && { status: update.status }),
-                  ...(update.noOfAttempts !== undefined && { noOfAttempts: update.noOfAttempts }),
-                  ...(update.lastAttemptDate !== undefined && { lastAttemptDate: update.lastAttemptDate }),
-                  ...(update.attemptedTime !== undefined && { attemptedTime: update.attemptedTime }),
-                };
-              })
-            : cert.levels,
-        };
-      });
-    }
-
-    // Update user document
-    await getAdminDb()
-      .collection("users")
-      .doc(uid)
-      .update({
-        certifications,
-        lastModifiedBy: updatedBy || "system",
-        updatedAt: new Date().toISOString(),
-      });
-
-    return NextResponse.json({
-      ok: true,
-      message: "Module progress updated successfully.",
-    });
+    return NextResponse.json({ ok: true, message: "Module progress updated successfully." });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { createInitialCertifications } from "@/lib/certifications";
 import { greyOrangeEmailErrorMessage, isGreyOrangeEmail, normalizeEmail } from "@/lib/email-validation";
 import PasswordField from "@/components/auth/PasswordField";
 import { apiUrl } from "@/lib/api";
@@ -61,29 +60,17 @@ export default function SignupPage() {
         ? await teamPolicyResponse.json()
         : { allowedLevel: 0 };
 
-      const response = await fetch(apiUrl("/api/firebase/store"), {
+      const response = await fetch(apiUrl("/api/firebase/signup"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          collection: "users",
-          docId: credential.user.uid,
-          data: {
-            uid: credential.user.uid,
-            name: name.trim(),
-            email: normalizedEmail,
-            team,
-            role: "learner",
-            level: 0,
-            allowedLevel: typeof teamPolicy.allowedLevel === "number" ? teamPolicy.allowedLevel : 0,
-            allowedLevelSource: "team",
-            certifications: createInitialCertifications(
-              typeof teamPolicy.allowedLevel === "number" ? teamPolicy.allowedLevel : 0
-            ),
-            createdAt: new Date().toISOString(),
-          },
-          merge: true,
+          uid: credential.user.uid,
+          name: name.trim(),
+          email: normalizedEmail,
+          team,
+          allowedLevel: typeof teamPolicy.allowedLevel === "number" ? teamPolicy.allowedLevel : 0,
         }),
       });
 

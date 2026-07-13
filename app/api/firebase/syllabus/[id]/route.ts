@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebaseAdmin";
+import { BackendApiError, fetchBackendJson } from "@/lib/backendApi";
 
 export async function GET(
   _request: Request,
@@ -12,13 +12,15 @@ export async function GET(
       return NextResponse.json({ error: "Syllabus id is required." }, { status: 400 });
     }
 
-    const doc = await getAdminDb().collection("syllabi").doc(id).get();
-
-    if (!doc.exists) {
-      return NextResponse.json({ error: "Syllabus not found." }, { status: 404 });
+    try {
+      const syllabus = await fetchBackendJson(`/api/courses/${encodeURIComponent(id)}/syllabus`);
+      return NextResponse.json(syllabus);
+    } catch (backendError) {
+      if (backendError instanceof BackendApiError && backendError.status === 404) {
+        return NextResponse.json({ error: "Syllabus not found." }, { status: 404 });
+      }
+      throw backendError;
     }
-
-    return NextResponse.json(doc.data());
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });

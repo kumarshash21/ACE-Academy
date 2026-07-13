@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
-import { createInitialCertifications } from "@/lib/certifications";
+import { getAdminAuth } from "@/lib/firebaseAdmin";
+import { createUserProfile } from "@/lib/create-user-profile";
 import { isGreyOrangeEmail, normalizeEmail } from "@/lib/email-validation";
-import { countModulesCovered } from "@/lib/progress";
+import { fetchBackendJson } from "@/lib/backendApi";
+
+type ExpandedUser = {
+  uid: string;
+  name: string;
+  email: string;
+  team: string;
+  role: "admin" | "learner";
+  certifications: unknown[];
+  modulesCovered: number;
+};
 
 /**
  * GET /api/firebase/users
@@ -14,21 +23,7 @@ import { countModulesCovered } from "@/lib/progress";
  */
 export async function GET() {
   try {
-    const snapshot = await getAdminDb().collection("users").get();
-
-    const users = snapshot.docs.map((doc) => {
-      const data = doc.data() ?? {};
-      return {
-        uid: doc.id,
-        name: typeof data.name === "string" ? data.name : "",
-        email: typeof data.email === "string" ? data.email : "",
-        team: typeof data.team === "string" ? data.team : "",
-        role: data.role === "admin" ? "admin" : "learner",
-        certifications: Array.isArray(data.certifications) ? data.certifications : [],
-        modulesCovered: countModulesCovered(data.progress?.done),
-      };
-    });
-
+    const { users } = await fetchBackendJson<{ users: ExpandedUser[] }>("/api/users?expand=full");
     return NextResponse.json({ users });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
@@ -48,8 +43,9 @@ type CreateBody = {
  * POST /api/firebase/users
  *
  * Admin-driven user creation. Provisions a real Firebase Auth login
- * (email + password) and mirrors signup's Firestore profile shape so the
- * new account can sign in and earn certifications immediately.
+ * (email + password — Auth stays on Firebase) and creates the Postgres
+ * profile row so the new account can sign in and earn certifications
+ * immediately.
  */
 export async function POST(request: Request) {
   try {
@@ -84,13 +80,12 @@ export async function POST(request: Request) {
     // Resolve the team's allowed level (matches the signup team-policy flow).
     let allowedLevel = 0;
     try {
-      const teamDoc = await getAdminDb().collection("teamPolicies").doc(team).get();
-      const teamData = teamDoc.data();
-      if (teamDoc.exists && typeof teamData?.allowedLevel === "number") {
-        allowedLevel = teamData.allowedLevel;
-      }
+      const policy = await fetchBackendJson<{ data: { allowed_level: number } }>(
+        `/api/team_policies/${encodeURIComponent(team)}`
+      );
+      allowedLevel = policy.data.allowed_level;
     } catch {
-      // Fall back to 0 if the team policy lookup fails.
+      // No policy for this team yet — default to 0.
     }
 
     let userRecord;
@@ -113,25 +108,7 @@ export async function POST(request: Request) {
 
     const uid = userRecord.uid;
 
-    await getAdminDb()
-      .collection("users")
-      .doc(uid)
-      .set(
-        {
-          uid,
-          name,
-          email,
-          team,
-          role,
-          level: 0,
-          allowedLevel,
-          allowedLevelSource: "team",
-          certifications: createInitialCertifications(allowedLevel),
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+    await createUserProfile({ uid, name, email, team, role, allowedLevel, allowedLevelSource: "team" });
 
     return NextResponse.json({ ok: true, uid }, { status: 201 });
   } catch (error) {

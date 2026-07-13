@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchBackendJson } from "@/lib/backendApi";
 
 const PERSONA_CERTS: Record<string, string[]> = {
   TAC: ["pathfinder", "navigator", "grandmaster", "toolscert"],
@@ -26,26 +26,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "team query parameter is required." }, { status: 400 });
     }
 
-    const teamDoc = await getAdminDb().collection("teamPolicies").doc(team).get();
     const allowedLevelCount = getAllowedLevelCount(team);
     const allowedCerts = PERSONA_CERTS[team] || PERSONA_CERTS.default;
 
-    if (!teamDoc.exists) {
+    try {
+      const policy = await fetchBackendJson<{ data: { allowed_level: number } }>(
+        `/api/team_policies/${encodeURIComponent(team)}`
+      );
+      return NextResponse.json({
+        team,
+        allowedLevel: Math.min(policy.data.allowed_level, allowedLevelCount),
+        certifications: allowedCerts,
+      });
+    } catch {
+      // No policy row for this team yet — default to the team's full allowed count.
       return NextResponse.json({
         team,
         allowedLevel: allowedLevelCount,
         certifications: allowedCerts,
-      }, { status: 200 });
+      });
     }
-
-    const data = teamDoc.data();
-    return NextResponse.json({
-      team,
-      allowedLevel: typeof data?.allowedLevel === "number"
-        ? Math.min(data.allowedLevel, allowedLevelCount)
-        : allowedLevelCount,
-      certifications: allowedCerts,
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });

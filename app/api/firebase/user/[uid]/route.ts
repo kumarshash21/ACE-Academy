@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminAuth, getAdminDb } from "@/lib/firebaseAdmin";
+import { getAdminAuth } from "@/lib/firebaseAdmin";
+import { BackendApiError, fetchBackendJson } from "@/lib/backendApi";
 
 export async function GET(
   _request: Request,
@@ -13,13 +13,15 @@ export async function GET(
       return NextResponse.json({ error: "uid is required." }, { status: 400 });
     }
 
-    const userDoc = await getAdminDb().collection("users").doc(uid).get();
-
-    if (!userDoc.exists) {
-      return NextResponse.json({ error: "User profile not found." }, { status: 404 });
+    try {
+      const profile = await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}/profile`);
+      return NextResponse.json(profile);
+    } catch (backendError) {
+      if (backendError instanceof BackendApiError && backendError.status === 404) {
+        return NextResponse.json({ error: "User profile not found." }, { status: 404 });
+      }
+      throw backendError;
     }
-
-    return NextResponse.json(userDoc.data());
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -49,31 +51,29 @@ export async function PATCH(
     }
 
     const body = (await request.json()) as PatchBody;
-    const updates: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
 
-    if (typeof body.name === "string" && body.name.trim()) {
-      updates.name = body.name.trim();
-    }
-    if (body.role === "admin" || body.role === "learner") {
-      updates.role = body.role;
-    }
-    if (typeof body.team === "string" && body.team.trim()) {
-      updates.team = body.team.trim();
-    }
+    const hasValidField =
+      (typeof body.name === "string" && body.name.trim()) ||
+      body.role === "admin" ||
+      body.role === "learner" ||
+      (typeof body.team === "string" && body.team.trim());
 
-    if (Object.keys(updates).length === 1) {
+    if (!hasValidField) {
       return NextResponse.json(
         { error: "No valid fields to update (name, role, or team)." },
         { status: 400 }
       );
     }
 
-    await getAdminDb().collection("users").doc(uid).set(updates, { merge: true });
+    await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
 
-    // Keep the Auth display name in sync when the name changes.
-    if (typeof updates.name === "string") {
+    // Keep the Auth display name in sync with the profile update.
+    if (typeof body.name === "string" && body.name.trim()) {
       try {
-        await getAdminAuth().updateUser(uid, { displayName: updates.name });
+        await getAdminAuth().updateUser(uid, { displayName: body.name.trim() });
       } catch {
         // Auth record may not exist for legacy/Firestore-only users — ignore.
       }
@@ -89,7 +89,7 @@ export async function PATCH(
 /**
  * DELETE /api/firebase/user/[uid]
  *
- * Removes both the Firestore profile and the Firebase Auth login.
+ * Removes the user's Postgres profile and the Firebase Auth login.
  */
 export async function DELETE(
   _request: Request,
@@ -102,13 +102,13 @@ export async function DELETE(
       return NextResponse.json({ error: "uid is required." }, { status: 400 });
     }
 
-    await getAdminDb().collection("users").doc(uid).delete();
+    await fetchBackendJson(`/api/users/${encodeURIComponent(uid)}`, { method: "DELETE" });
 
     try {
       await getAdminAuth().deleteUser(uid);
     } catch (authError) {
       const code = (authError as { code?: string })?.code;
-      // Tolerate a missing Auth record (Firestore-only / already-removed user).
+      // Tolerate a missing Auth record (already-removed user).
       if (code !== "auth/user-not-found") {
         throw authError;
       }

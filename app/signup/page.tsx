@@ -55,12 +55,12 @@ export default function SignupPage() {
         displayName: name.trim(),
       });
 
-      const teamPolicyResponse = await fetch(apiUrl(`/api/firebase/team-policy?team=${encodeURIComponent(team)}`));
+      const teamPolicyResponse = await fetch(apiUrl(`/api/postgres/team-policy?team=${encodeURIComponent(team)}`));
       const teamPolicy = teamPolicyResponse.ok
         ? await teamPolicyResponse.json()
         : { allowedLevel: 0 };
 
-      const response = await fetch(apiUrl("/api/firebase/signup"), {
+      const response = await fetch(apiUrl("/api/postgres/signup"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

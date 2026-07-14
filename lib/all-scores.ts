@@ -1,7 +1,7 @@
 import { CMETA, PRODUCTS, type CertId } from "@/lib/academy-data";
 import type { CertificationModule, LevelProgress } from "@/lib/certifications";
 
-/** One user from the /api/firebase/users (or /rankings) listing. */
+/** One user from the /api/postgres/users (or /rankings) listing. */
 export type ScoreSourceUser = {
   uid: string;
   name: string;

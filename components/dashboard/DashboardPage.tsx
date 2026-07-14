@@ -35,7 +35,7 @@ export default function DashboardPage({ user }: DashboardPageProps) {
 
     async function loadProgress() {
       try {
-        const response = await fetch(apiUrl(`/api/firebase/user-progress/${encodeURIComponent(user.id)}`));
+        const response = await fetch(apiUrl(`/api/postgres/user-progress/${encodeURIComponent(user.id)}`));
 
         if (!response.ok) {
           throw new Error("Failed to fetch progress.");

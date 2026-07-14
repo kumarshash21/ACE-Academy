@@ -106,7 +106,7 @@ export function useAuth() {
       let profile: FirestoreUserProfile | undefined;
 
       try {
-        const profileResponse = await fetch(apiUrl(`/api/firebase/user/${credential.user.uid}`));
+        const profileResponse = await fetch(apiUrl(`/api/postgres/user/${credential.user.uid}`));
         if (profileResponse.ok) {
           profile = (await profileResponse.json()) as FirestoreUserProfile;
         }

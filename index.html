@@ -1923,7 +1923,7 @@ function sDone(d){localStorage.setItem('ace2_done',JSON.stringify(d))}
 async function fetchServerDoneForUser(uid){
   if(!uid) return null;
   try{
-    const res=await fetch(`/ace_academy/api/firebase/user-progress/${encodeURIComponent(uid)}`);
+    const res=await fetch(`/ace_academy/api/postgres/user-progress/${encodeURIComponent(uid)}`);
     if(!res.ok) return null;
     const data=await res.json();
     return (data && typeof data.done==='object' && data.done) ? data.done : {};
@@ -1955,7 +1955,7 @@ async function fetchSyllabusFromAPI(id){
     return SYLLABUS_CACHE[id];
   }
   try{
-    const res=await fetch(`/ace_academy/api/firebase/syllabus/${encodeURIComponent(id)}`);
+    const res=await fetch(`/ace_academy/api/postgres/syllabus/${encodeURIComponent(id)}`);
     if(!res.ok) throw new Error(`Syllabus ${id} not found`);
     const data=await res.json();
     SYLLABUS_CACHE[id]=data;
@@ -2266,7 +2266,7 @@ function mkFallbackUserForFirebase(fbUser){
 // async function hydrateUserFromFirestore(fbUser){
 //   const fallback=mkFallbackUserForFirebase(fbUser);
 //   try{
-//     const response=await fetch(`/api/firebase/user/${encodeURIComponent(fbUser.uid)}`);
+//     const response=await fetch(`/api/postgres/user/${encodeURIComponent(fbUser.uid)}`);
 //     if(!response.ok) return fallback;
 //     const profile=await response.json();
 //     const name=(profile && typeof profile.name==='string' ? profile.name.trim() : '') || fallback.name;
@@ -2299,7 +2299,7 @@ async function hydrateUserFromFirestore(fbUser){
   const fallback = mkFallbackUserForFirebase(fbUser);
   try {
     // 1. Safe Network Fetch with an explicit timeout or catch
-    const response = await fetch(`/ace_academy/api/firebase/user/${encodeURIComponent(fbUser.uid)}`)
+    const response = await fetch(`/ace_academy/api/postgres/user/${encodeURIComponent(fbUser.uid)}`)
                            .catch(() => null); // Neutralize network-level crashes safely
     
     // If the API server isn't running or returns a bad status, use the fallback structure
@@ -2668,7 +2668,7 @@ function rankInitials(name){
 async function fetchRankUsers(){
   if(RANK_USERS) return RANK_USERS;
   try{
-    const res=await fetch('/ace_academy/api/firebase/rankings');
+    const res=await fetch('/ace_academy/api/postgres/rankings');
     if(!res.ok) throw new Error('rankings fetch failed: '+res.status);
     const data=await res.json();
     RANK_USERS=Array.isArray(data.users)?data.users:[];

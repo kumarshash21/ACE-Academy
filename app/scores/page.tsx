@@ -24,7 +24,7 @@ export default function AllScores() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(apiUrl("/api/firebase/users"));
+        const response = await fetch(apiUrl("/api/postgres/users"));
         if (!response.ok) throw new Error("Failed to load score data.");
         const data = await response.json();
         setUsers(Array.isArray(data.users) ? data.users : []);

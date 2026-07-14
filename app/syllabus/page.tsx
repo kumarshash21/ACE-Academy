@@ -51,7 +51,7 @@
 //     async function fetchSyllabusData() {
 //       setIsLoading(true);
 //       try {
-//         const response = await fetch(`/api/firebase/syllabus/${activeId}`);
+//         const response = await fetch(`/api/postgres/syllabus/${activeId}`);
 //         if (response.ok) {
 //           const data: SyllabusData = await response.json();
 //           setSyllabus(data);
@@ -263,7 +263,7 @@
 //     async function fetchSyllabusData() {
 //       setIsLoading(true);
 //       try {
-//         const response = await fetch(`/api/firebase/syllabus/${activeId}`);
+//         const response = await fetch(`/api/postgres/syllabus/${activeId}`);
 //         if (response.ok) {
 //           const data: SyllabusData = await response.json();
 //           setSyllabus(data);
@@ -296,7 +296,7 @@
 
 //     // Optional: Sync completion status back to Firebase
 //     try {
-//       await fetch(`/api/firebase/user/progress/${activeId}`, {
+//       await fetch(`/api/postgres/user/progress/${activeId}`, {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({ moduleKey, completed: nextState }),
@@ -530,6 +530,7 @@
 import { useState, useEffect } from "react";
 import AppShell from "../../components/AppShell";
 import { apiUrl } from "@/lib/api";
+import { normalizeResourceUrl } from "@/lib/url";
 
 const COURSE_TABS = [
   { id: "rtp", name: "Ranger RTP", icon: "🤖", cssClass: "rtp" },
@@ -635,7 +636,7 @@ export default function SyllabusPage() {
 
     (async () => {
       try {
-        const response = await fetch(apiUrl(`/api/firebase/user-progress/${userId}`));
+        const response = await fetch(apiUrl(`/api/postgres/user-progress/${userId}`));
         if (!response.ok) return;
         const data = await response.json();
         const done = data?.done && typeof data.done === "object" ? data.done : {};
@@ -659,7 +660,7 @@ export default function SyllabusPage() {
     async function fetchSyllabusData() {
       setIsLoading(true);
       try {
-        const response = await fetch(apiUrl(`/api/firebase/syllabus/${activeId}`));
+        const response = await fetch(apiUrl(`/api/postgres/syllabus/${activeId}`));
         if (response.ok) {
           const data: SyllabusData = await response.json();
           setSyllabus(data);
@@ -747,7 +748,7 @@ export default function SyllabusPage() {
       // 3. Persist to Firestore (source of truth) as a single atomic field
       // write for just this module — no read-then-write, so it can't race
       // with another toggle that's still in flight.
-      await fetch(apiUrl('/api/firebase/user-progress'), {
+      await fetch(apiUrl('/api/postgres/user-progress'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uid: userId, moduleKey: htmlAppStructuralKey, isDone: nextState }),
@@ -915,7 +916,7 @@ export default function SyllabusPage() {
                               ) : (
                                 <a
                                   key={rIdx}
-                                  href={res.url}
+                                  href={normalizeResourceUrl(res.url)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className={`mod-link ${isVideo ? "vid" : "doc"}`}

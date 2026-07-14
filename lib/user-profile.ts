@@ -15,7 +15,7 @@ export type UserProgressSnapshot = {
 };
 
 /**
- * User document from GET /api/firebase/user/[uid]
+ * User document from GET /api/postgres/user/[uid]
  * (matches Firestore `users/{uid}` — see signup + sample profile JSON)
  */
 export type FirestoreUserProfile = {
@@ -49,7 +49,7 @@ export async function fetchUserProfile(uid: string): Promise<{
   profile: FirestoreUserProfile | null;
   error: "profile_not_found" | "fetch_failed" | null;
 }> {
-  const response = await fetch(apiUrl(`/api/firebase/user/${encodeURIComponent(uid)}`));
+  const response = await fetch(apiUrl(`/api/postgres/user/${encodeURIComponent(uid)}`));
 
   if (response.status === 404) {
     return { profile: null, error: "profile_not_found" };

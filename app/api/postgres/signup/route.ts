@@ -11,7 +11,7 @@ type SignupBody = {
 };
 
 /**
- * POST /api/firebase/signup
+ * POST /api/postgres/signup
  *
  * Self-signup profile creation. The Firebase Auth account is already created
  * client-side (createUserWithEmailAndPassword) before this is called — this

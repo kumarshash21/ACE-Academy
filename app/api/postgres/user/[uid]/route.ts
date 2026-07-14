@@ -35,7 +35,7 @@ type PatchBody = {
 };
 
 /**
- * PATCH /api/firebase/user/[uid]
+ * PATCH /api/postgres/user/[uid]
  *
  * Admin edit of a user's identity/access fields (name, role, team).
  */
@@ -87,7 +87,7 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/firebase/user/[uid]
+ * DELETE /api/postgres/user/[uid]
  *
  * Removes the user's Postgres profile and the Firebase Auth login.
  */

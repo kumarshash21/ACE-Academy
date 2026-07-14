@@ -15,7 +15,7 @@ type ExpandedUser = {
 };
 
 /**
- * GET /api/firebase/users
+ * GET /api/postgres/users
  *
  * Admin user-management listing. Returns every user with the fields the
  * Manage Program → User Management panel needs (the /rankings projection
@@ -40,7 +40,7 @@ type CreateBody = {
 };
 
 /**
- * POST /api/firebase/users
+ * POST /api/postgres/users
  *
  * Admin-driven user creation. Provisions a real Firebase Auth login
  * (email + password — Auth stays on Firebase) and creates the Postgres

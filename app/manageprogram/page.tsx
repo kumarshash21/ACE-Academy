@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell';
 import React, { useState, useEffect } from 'react';
 import { getCertificationsEarnedCount } from '@/lib/certifications';
 import { apiUrl } from '@/lib/api';
+import { normalizeResourceUrl } from '@/lib/url';
 
 // Team options available when creating/editing a user (mirrors signup).
 const TEAM_OPTIONS = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM', 'Management'];
@@ -233,7 +234,7 @@ export default function ManageProgram() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(apiUrl(`/api/firebase/assessments?quizId=${activeQuizId}`));
+        const response = await fetch(apiUrl(`/api/postgres/assessments?quizId=${activeQuizId}`));
         if (!response.ok) {
           throw new Error(`Failed to load data for query identity key: ${activeQuizId}`);
         }
@@ -258,7 +259,7 @@ export default function ManageProgram() {
       if (activeTab !== 'syllabus') return;
       setSylLoading(true);
       try {
-        const response = await fetch(apiUrl(`/api/firebase/syllabus/${admProd}`));
+        const response = await fetch(apiUrl(`/api/postgres/syllabus/${admProd}`));
         if (!response.ok) throw new Error("Failed to pull dynamic backend syllabus schema.");
         const data: AdminSyllabusPayload = await response.json();
         setCurrentSyllabusData(data);
@@ -334,7 +335,7 @@ export default function ManageProgram() {
     setError(null);
 
     try {
-      const response = await fetch(apiUrl(`/api/firebase/assessments/${payload.quizId}`), {
+      const response = await fetch(apiUrl(`/api/postgres/assessments/${payload.quizId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -395,7 +396,7 @@ export default function ManageProgram() {
         setLoading(true);
 
         try {
-          const response = await fetch(apiUrl(`/api/firebase/assessments/${activeQuizId}`), {
+          const response = await fetch(apiUrl(`/api/postgres/assessments/${activeQuizId}`), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -445,7 +446,7 @@ export default function ManageProgram() {
     setError(null);
 
     try {
-      const response = await fetch(apiUrl(`/api/firebase/assessments/${activeQuizId}`), {
+      const response = await fetch(apiUrl(`/api/postgres/assessments/${activeQuizId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -508,8 +509,8 @@ export default function ManageProgram() {
           if (activeResIdx !== null && mod.resources[activeResIdx]) {
             mod.resources[activeResIdx] = {
               label: modalLnkLabel.trim(),
-              type: modalLnkType, 
-              url: modalLnkUrl.trim()
+              type: modalLnkType,
+              url: normalizeResourceUrl(modalLnkUrl)
             };
            localizedMatch = true;
           }
@@ -536,7 +537,7 @@ export default function ManageProgram() {
     };
 
     try {
-      const response = await fetch(apiUrl('/api/firebase/syllabus'), {
+      const response = await fetch(apiUrl('/api/postgres/syllabus'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json' 
@@ -620,7 +621,7 @@ export default function ManageProgram() {
     };
 
     try {
-      const response = await fetch(apiUrl('/api/firebase/syllabus'), {
+      const response = await fetch(apiUrl('/api/postgres/syllabus'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json' 
@@ -664,7 +665,7 @@ export default function ManageProgram() {
         levels: clonedData.levels,
       },
     };
-    const response = await fetch(apiUrl('/api/firebase/syllabus'), {
+    const response = await fetch(apiUrl('/api/postgres/syllabus'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(finalRequestBody),
@@ -787,7 +788,7 @@ export default function ManageProgram() {
       for (const mod of topic.modules) {
         if (mod.code === addResModCode) {
           if (!mod.resources) mod.resources = [];
-          mod.resources.push({ label: modalLnkLabel.trim(), type: modalLnkType, url: modalLnkUrl.trim() });
+          mod.resources.push({ label: modalLnkLabel.trim(), type: modalLnkType, url: normalizeResourceUrl(modalLnkUrl) });
           found = true;
           break;
         }
@@ -904,7 +905,7 @@ export default function ManageProgram() {
     setUsersLoading(true);
     setUsersError(null);
     try {
-      const response = await fetch(apiUrl('/api/firebase/users'));
+      const response = await fetch(apiUrl('/api/postgres/users'));
       if (!response.ok) throw new Error('Failed to load the user registry.');
       const data = await response.json();
       setUsers(Array.isArray(data.users) ? data.users : []);
@@ -965,7 +966,7 @@ export default function ManageProgram() {
     try {
       let response: Response;
       if (userModalMode === 'add') {
-        response = await fetch(apiUrl('/api/firebase/users'), {
+        response = await fetch(apiUrl('/api/postgres/users'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -977,7 +978,7 @@ export default function ManageProgram() {
           }),
         });
       } else {
-        response = await fetch(apiUrl(`/api/firebase/user/${editingUid}`), {
+        response = await fetch(apiUrl(`/api/postgres/user/${editingUid}`), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: uName.trim(), team: uTeam, role: uRole }),
@@ -1035,7 +1036,7 @@ export default function ManageProgram() {
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
-          const response = await fetch(apiUrl(`/api/firebase/user/${user.uid}`), { method: 'DELETE' });
+          const response = await fetch(apiUrl(`/api/postgres/user/${user.uid}`), { method: 'DELETE' });
           const responseData = await response.json().catch(() => ({}));
           if (!response.ok) {
             throw new Error(responseData.error || 'Failed to delete user.');
@@ -1523,7 +1524,7 @@ export default function ManageProgram() {
                                             className={`mod-link ${isVideo ? 'vid' : 'doc'}`}
                                             style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}
                                           >
-                                            <a href={res.url} target="_blank" rel="noreferrer" style={{ color: isVideo ? '#f43f5e' : '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <a href={normalizeResourceUrl(res.url)} target="_blank" rel="noreferrer" style={{ color: isVideo ? '#f43f5e' : '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                               <span>{isVideo ? '▶' : '📄'}</span>
                                               {res.label}
                                             </a>
@@ -2025,7 +2026,7 @@ export default function ManageProgram() {
                       {newModResources.map((r, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', padding: '6px 10px' }}>
                           <a
-                            href={r.url}
+                            href={normalizeResourceUrl(r.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, color: r.type === 'video' ? '#f43f5e' : '#38bdf8', textDecoration: 'none', fontSize: '13px', overflow: 'hidden' }}
@@ -2086,7 +2087,7 @@ export default function ManageProgram() {
                       type="button"
                       onClick={() => {
                         if (!newResLabel.trim() || !newResUrl.trim()) return showAlert('Label and URL are required to add a resource.', 'error');
-                        setNewModResources(prev => [...prev, { label: newResLabel.trim(), url: newResUrl.trim(), type: newResType }]);
+                        setNewModResources(prev => [...prev, { label: newResLabel.trim(), url: normalizeResourceUrl(newResUrl), type: newResType }]);
                         setNewResLabel('');
                         setNewResUrl('');
                         setNewResType('doc');

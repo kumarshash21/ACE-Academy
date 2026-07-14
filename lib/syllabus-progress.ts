@@ -36,7 +36,7 @@ export async function fetchSyllabusByProduct(): Promise<SyllabusByProduct> {
   const entries = await Promise.all(
     PRODUCTS.map(async (product) => {
       try {
-        const response = await fetch(apiUrl(`/api/firebase/syllabus/${product.id}`));
+        const response = await fetch(apiUrl(`/api/postgres/syllabus/${product.id}`));
         if (!response.ok) return [product.id, null] as const;
         const data = (await response.json()) as SyllabusData;
         return [product.id, data] as const;

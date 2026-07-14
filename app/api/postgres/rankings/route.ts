@@ -11,7 +11,7 @@ type ExpandedUser = {
 };
 
 /**
- * GET /api/firebase/rankings
+ * GET /api/postgres/rankings
  *
  * Returns a compact projection of every user for the dashboard ranking cards.
  * The client (legacy index.html) does all filtering/sorting/top-5 in the browser,

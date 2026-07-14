@@ -172,7 +172,7 @@ const handleLevelClick = async (levelId: string) => {
     
     try {
       // Both standard tracks and the tools track will now cleanly use a standard GET request relatively
-      const response = await fetch(apiUrl(`/api/firebase/assessments?quizId=${targetQuizId}`));
+      const response = await fetch(apiUrl(`/api/postgres/assessments?quizId=${targetQuizId}`));
 
       if (response.ok) {
         const data: QuizData = await response.json();
@@ -257,7 +257,7 @@ const handleLevelClick = async (levelId: string) => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(apiUrl("/api/firebase/assessments/submit"), {
+      const response = await fetch(apiUrl("/api/postgres/assessments/submit"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

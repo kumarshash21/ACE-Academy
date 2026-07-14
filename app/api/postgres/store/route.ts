@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 /**
- * POST /api/firebase/store
+ * POST /api/postgres/store
  *
  * Was a generic escape hatch for arbitrary Firestore writes
  * (`{collection, docId, data}` -> any doc, any shape). Postgres has a fixed

@@ -35,7 +35,7 @@ export default function UserProgressPage() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(apiUrl("/api/firebase/users"), { cache: "no-store" });
+        const response = await fetch(apiUrl("/api/postgres/users"), { cache: "no-store" });
         if (!response.ok) throw new Error("Failed to load user progress data.");
         const data = await response.json();
         setUsers(Array.isArray(data.users) ? data.users : []);

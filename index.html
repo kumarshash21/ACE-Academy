@@ -1557,7 +1557,9 @@ const PERSONA_CERTS={
   'CAC':               ['pathfinder','toolscert'],
   'IM':                ['pathfinder','toolscert'],
   'Management':        ['pathfinder','toolscert'],
-  'default':           ['pathfinder','navigator','grandmaster','toolscert']
+  'Product Manager':   ['pathfinder','toolscert'],
+  'SIM': ['pathfinder','navigator','grandmaster','toolscert'],
+  'default':           ['pathfinder','navigator','grandmaster','toolscert'],
 };
 
 function getAllowedLevelsForTeam(team){
@@ -2238,7 +2240,7 @@ try{
     fbAuth=firebase.auth();
   }
 }catch(e){
-  console.warn('Firebase initialization failed; using legacy auth.',e);
+  console.warn('initialization failed; using legacy auth.',e);
   fbAuth=null;
 }
 
@@ -2262,39 +2264,6 @@ function mkFallbackUserForFirebase(fbUser){
     allowedLevelSource:'local'
   };
 }
-
-// async function hydrateUserFromFirestore(fbUser){
-//   const fallback=mkFallbackUserForFirebase(fbUser);
-//   try{
-//     const response=await fetch(`/api/postgres/user/${encodeURIComponent(fbUser.uid)}`);
-//     if(!response.ok) return fallback;
-//     const profile=await response.json();
-//     const name=(profile && typeof profile.name==='string' ? profile.name.trim() : '') || fallback.name;
-//     const av=(name.split(/\s+/).filter(Boolean).map(part=>part[0]).join('').slice(0,2)||fallback.av).toUpperCase();
-//     const certifications = Array.isArray(profile.certifications) ? profile.certifications : fallback.certifications;
-//     const currentLevel = getCurrentLevelFromCerts(certifications) || (typeof profile.level==='number' ? profile.level : fallback.level);
-//     return {
-//       ...fallback,
-//       id: profile.uid || fbUser.uid || fallback.id,
-//       name,
-//       email: profile.email || fallback.email,
-//       team: profile.team || fallback.team,
-//       role: profile.role || fallback.role,
-//       av,
-//       certifications,
-//       level: currentLevel,
-//       allowedLevel: (() => {
-//         const personaAllowedLevel = getAllowedLevelNumber(profile.team || fallback.team);
-//         return typeof profile.allowedLevel==='number'
-//           ? Math.min(profile.allowedLevel, personaAllowedLevel)
-//           : personaAllowedLevel;
-//       })(),
-//       allowedLevelSource: profile.allowedLevelSource || fallback.allowedLevelSource,
-//     };
-//   }catch(_err){
-//     return fallback;
-//   }
-// }
 async function hydrateUserFromFirestore(fbUser){
   const fallback = mkFallbackUserForFirebase(fbUser);
   try {
@@ -2690,7 +2659,7 @@ function buildLeaderboard(users, prodId, levelCertId, teamFilter){
   const rows=[];
   users.forEach(u=>{
     // Admins and the Management team are excluded from all rankings.
-    if(u.role==='admin' || u.team==='Management') return;
+    if(u.role==='admin' || u.team==='Management' || u.team === 'Product Manager') return;
     if(teamFilter && u.team!==teamFilter) return;
     const certs=Array.isArray(u.certifications)?u.certifications:[];
     const lvl=findCertLevel(certs, moduleName, levelName);

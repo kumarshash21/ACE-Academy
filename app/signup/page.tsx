@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase";
 import { greyOrangeEmailErrorMessage, isGreyOrangeEmail, normalizeEmail } from "@/lib/email-validation";
 import PasswordField from "@/components/auth/PasswordField";
 import { apiUrl } from "@/lib/api";
-const TEAM_OPTIONS = ['TAC','Change Management','Client Director','CEM','CAC','IM','Management'];
+const TEAM_OPTIONS = ['TAC','Change Management','Client Director','CEM','CAC','IM','Management','Product Manager','SIM'];
 
 export default function SignupPage() {
   const router = useRouter();
@@ -145,7 +145,8 @@ export default function SignupPage() {
             </span>
           </div>
           <div className="login-title" style={{ fontSize: "42px", fontWeight: 800, marginBottom: "16px", color: "#ffffff", lineHeight: "1.2" }}>
-            Create your <span style={{ background: "linear-gradient(to right, #b493ff, #fbcfe8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>ACE Academy</span> account
+            Create your <span 
+            style={{ background: "linear-gradient(to right, #b493ff, #fbcfe8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>ACE Academy</span> account
           </div>
         </div>
 

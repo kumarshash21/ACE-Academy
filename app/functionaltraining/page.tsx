@@ -6,42 +6,19 @@ import { getSessionUid, getSessionTeam } from "@/lib/session";
 import { fetchUserProfile } from "@/lib/user-profile";
 import { apiUrl } from "@/lib/api";
 
-type TrainingRow = {
+type ModuleItem = {
   id: number | string;
-  team: string;
   title: string;
   link: string;
   sort_order?: number;
 };
 
-type TrainingGroup = { teamKey: string; groupId: string; items: TrainingRow[] };
-
-// Groups entries that share the same team (e.g. "TAC-RTP" and "TAC-RTP (2)")
-// into a single card so each team appears only once.
-function groupByTeam(trainings: TrainingRow[]): TrainingGroup[] {
-  const groups: TrainingGroup[] = [];
-  for (const item of trainings) {
-    const teamKey = item.team.replace(/\s*\(\d+\)\s*$/, "");
-    const existing = groups.find((g) => g.teamKey === teamKey);
-    if (existing) {
-      existing.items.push(item);
-    } else {
-      groups.push({ teamKey, groupId: String(item.id), items: [item] });
-    }
-  }
-  return groups;
-}
-
-// Maps a signup `team` value (see TEAM_OPTIONS in app/signup/page.tsx) to the
-// Functional Training teamKey(s) that team should see.
-const TEAM_ALIASES: Record<string, string[]> = {
-  TAC: ["TAC-RTP", "TAC-RMS"],
-  "Change Management": ["CM"],
-  "Client Director": ["CD"],
-  CEM: ["CEM"],
-  CAC: ["CAC"],
-  IM: ["IM/PM"],
-  "Product Manager": ["IM/PM"],
+type TopicNode = {
+  id: number | string;
+  team: string;
+  title: string;
+  sort_order?: number;
+  modules: ModuleItem[];
 };
 
 export default function FunctionalTraining() {
@@ -76,36 +53,35 @@ export default function FunctionalTraining() {
     });
   }, []);
 
-  const [trainings, setTrainings] = useState<TrainingRow[]>([]);
+  const [topics, setTopics] = useState<TopicNode[]>([]);
   const [isLoadingTrainings, setIsLoadingTrainings] = useState(true);
   const [trainingsError, setTrainingsError] = useState(false);
 
   useEffect(() => {
-    fetch(apiUrl("/api/postgres/functional-training"))
+    if (isLoadingTeam) return;
+
+    if (!userTeam) {
+      setTopics([]);
+      setIsLoadingTrainings(false);
+      return;
+    }
+
+    setIsLoadingTrainings(true);
+    fetch(apiUrl(`/api/postgres/functional-training-topics/tree?team=${encodeURIComponent(userTeam)}`))
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load functional training.");
         return res.json();
       })
-      .then((body: { data?: TrainingRow[] }) => {
-        const rows = [...(body.data ?? [])].sort(
-          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
-        );
-        setTrainings(rows);
-      })
+      .then((body: { data?: TopicNode[] }) => setTopics(body.data ?? []))
       .catch(() => setTrainingsError(true))
       .finally(() => setIsLoadingTrainings(false));
-  }, []);
-
-  const teamGroups = groupByTeam(trainings);
-  const assignedTeamKeys = userTeam ? TEAM_ALIASES[userTeam] ?? [] : [];
-  const teamScopedGroups = teamGroups.filter((group) => assignedTeamKeys.includes(group.teamKey));
+  }, [isLoadingTeam, userTeam]);
 
   useEffect(() => {
-    if (teamScopedGroups.length > 0) {
-      setExpandedItems({ [teamScopedGroups[0].groupId]: true });
+    if (topics.length > 0) {
+      setExpandedItems({ [String(topics[0].id)]: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userTeam, trainings]);
+  }, [topics]);
 
   const toggleAccordion = (id: string) => {
     setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -119,11 +95,11 @@ export default function FunctionalTraining() {
     });
   };
 
-  const filteredGroups = teamScopedGroups.filter((group) => {
+  const filteredTopics = topics.filter((topic) => {
     const query = searchQuery.toLowerCase();
     return (
-      group.teamKey.toLowerCase().includes(query) ||
-      group.items.some((item) => item.title.toLowerCase().includes(query))
+      topic.title.toLowerCase().includes(query) ||
+      topic.modules.some((m) => m.title.toLowerCase().includes(query))
     );
   });
 
@@ -159,26 +135,27 @@ export default function FunctionalTraining() {
             <div className="ace-no-results">
               Couldn't load functional training right now. Please try again later.
             </div>
-          ) : teamScopedGroups.length === 0 ? (
+          ) : topics.length === 0 ? (
             <div className="ace-no-results">
               No functional training has been assigned to your team yet.
             </div>
-          ) : filteredGroups.length > 0 ? (
-            filteredGroups.map((group) => {
-              const isOpen = !!expandedItems[group.groupId];
+          ) : filteredTopics.length > 0 ? (
+            filteredTopics.map((topic) => {
+              const topicId = String(topic.id);
+              const isOpen = !!expandedItems[topicId];
 
               return (
-                <div key={group.groupId} className={`ace-card ${isOpen ? 'is-open' : ''}`}>
+                <div key={topicId} className={`ace-card ${isOpen ? 'is-open' : ''}`}>
 
                   <button
                     type="button"
-                    onClick={() => toggleAccordion(group.groupId)}
+                    onClick={() => toggleAccordion(topicId)}
                     className="ace-card-trigger"
                     aria-expanded={isOpen}
                   >
                     <div className="ace-trigger-left">
-                      <span className="ace-badge-id">{group.groupId}</span>
-                      <span className="ace-team-name">{group.teamKey}</span>
+                      <span className="ace-badge-id">{topicId}</span>
+                      <span className="ace-team-name">{topic.title}</span>
                     </div>
 
                     <div className="ace-trigger-right">
@@ -197,12 +174,12 @@ export default function FunctionalTraining() {
                   {isOpen && (
                     <div className="ace-card-body">
                       <p className="ace-description">
-                        Class recordings and resource pathways dedicated to {group.teamKey} internal operations.
+                        Class recordings and resource pathways for {topic.team} — {topic.title}.
                       </p>
 
                       <div className="ace-body-actions-row">
                         <div className="ace-pill-wrapper">
-                          {group.items.map((item) => (
+                          {topic.modules.map((item) => (
                             <a key={item.id} href={item.link} target="_blank" rel="noopener noreferrer" className="ace-pill ace-pill-video">
                               <svg className="icon-play" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />

@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { fetchBackendJson, BackendApiError } from "@/lib/backendApi";
 
 type PatchBody = {
-  topicId?: number | string;
+  team?: string;
   title?: string;
-  link?: string;
   sortOrder?: number;
 };
 
 /**
- * PATCH /api/postgres/functional-training/[id]
- *
- * Admin edit of a training module's topic, title, link, or sort order.
+ * PATCH /api/postgres/functional-training-topics/[id]
  */
 export async function PATCH(
   request: Request,
@@ -22,26 +19,25 @@ export async function PATCH(
     const body = (await request.json()) as PatchBody;
 
     const hasValidField =
-      Boolean(body.topicId) ||
+      (typeof body.team === "string" && body.team.trim()) ||
       (typeof body.title === "string" && body.title.trim()) ||
-      (typeof body.link === "string" && body.link.trim()) ||
       typeof body.sortOrder === "number";
 
     if (!hasValidField) {
       return NextResponse.json(
-        { error: "No valid fields to update (topicId, title, link, or sortOrder)." },
+        { error: "No valid fields to update (team, title, or sortOrder)." },
         { status: 400 }
       );
     }
 
-    const result = await fetchBackendJson(`/api/functional_trainings/${encodeURIComponent(id)}`, {
+    const result = await fetchBackendJson(`/api/functional_training_topics/${encodeURIComponent(id)}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     });
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 404) {
-      return NextResponse.json({ error: "Functional training not found." }, { status: 404 });
+      return NextResponse.json({ error: "Functional training topic not found." }, { status: 404 });
     }
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -49,7 +45,9 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/postgres/functional-training/[id]
+ * DELETE /api/postgres/functional-training-topics/[id]
+ *
+ * Cascades to delete every module under this topic.
  */
 export async function DELETE(
   _request: Request,
@@ -57,13 +55,13 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await fetchBackendJson(`/api/functional_trainings/${encodeURIComponent(id)}`, {
+    await fetchBackendJson(`/api/functional_training_topics/${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
     return NextResponse.json({ ok: true, id });
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 404) {
-      return NextResponse.json({ error: "Functional training not found." }, { status: 404 });
+      return NextResponse.json({ error: "Functional training topic not found." }, { status: 404 });
     }
     const message = error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json({ error: message }, { status: 500 });

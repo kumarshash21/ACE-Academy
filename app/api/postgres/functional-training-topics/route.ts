@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchBackendJson } from "@/lib/backendApi";
 
 /**
- * GET /api/postgres/functional-training?topicId=<id>
+ * GET /api/postgres/functional-training-topics?team=<team>
  *
- * Lists functional training modules, optionally filtered by topic.
+ * Lists functional training topics, optionally filtered by team.
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const topicId = searchParams.get("topicId");
+    const team = searchParams.get("team");
 
-    const query = topicId ? `?topic_id=${encodeURIComponent(topicId)}` : "";
-    const result = await fetchBackendJson(`/api/functional_trainings${query}`);
+    const query = team ? `?team=${encodeURIComponent(team)}` : "";
+    const result = await fetchBackendJson(`/api/functional_training_topics${query}`);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown server error";
@@ -21,29 +21,25 @@ export async function GET(request: NextRequest) {
 }
 
 type CreateBody = {
-  topicId?: number | string;
+  team?: string;
   title?: string;
-  link?: string;
   sortOrder?: number;
 };
 
 /**
- * POST /api/postgres/functional-training
+ * POST /api/postgres/functional-training-topics
  *
- * Admin-created training module, body: { topicId, title, link, sortOrder? }.
+ * Admin-created topic, body: { team, title, sortOrder? }.
  */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as CreateBody;
 
-    if (!body.topicId || !body.title?.trim() || !body.link?.trim()) {
-      return NextResponse.json(
-        { error: "topicId, title, and link are required." },
-        { status: 400 }
-      );
+    if (!body.team?.trim() || !body.title?.trim()) {
+      return NextResponse.json({ error: "team and title are required." }, { status: 400 });
     }
 
-    const result = await fetchBackendJson("/api/functional_trainings", {
+    const result = await fetchBackendJson("/api/functional_training_topics", {
       method: "POST",
       body: JSON.stringify(body),
     });

@@ -101,9 +101,17 @@ interface ManagedUser {
   certifications: unknown[];
 }
 
+interface FunctionalTrainingItem {
+  id: number;
+  team: string;
+  title: string;
+  link: string;
+  sort_order?: number;
+}
+
 export default function ManageProgram() {
   // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<'questions' | 'timers' | 'syllabus' | 'users'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'timers' | 'syllabus' | 'users' | 'functionalTraining'>('questions');
 
   // Custom Notifications Alert State
   const [alert, setAlert] = useState<CustomAlert | null>(null);
@@ -190,6 +198,20 @@ export default function ManageProgram() {
   const [uPassword, setUPassword] = useState('');
   const [uTeam, setUTeam] = useState(TEAM_OPTIONS[0]);
   const [uRole, setURole] = useState<'admin' | 'learner'>('learner');
+
+  // --- FUNCTIONAL TRAINING STATE ---
+  const [functionalTrainings, setFunctionalTrainings] = useState<FunctionalTrainingItem[]>([]);
+  const [ftLoading, setFtLoading] = useState<boolean>(false);
+  const [ftError, setFtError] = useState<string | null>(null);
+
+  // Functional training add/edit modal control
+  const [isFtModalOpen, setIsFtModalOpen] = useState(false);
+  const [ftModalMode, setFtModalMode] = useState<'add' | 'edit'>('add');
+  const [editingFtId, setEditingFtId] = useState<number | null>(null);
+  const [ftSaving, setFtSaving] = useState(false);
+  const [ftTeam, setFtTeam] = useState('');
+  const [ftTitle, setFtTitle] = useState('');
+  const [ftLink, setFtLink] = useState('');
 
   // Resolve the signed-in user once on mount (for "(you)" + self-delete guard).
   useEffect(() => {
@@ -1050,6 +1072,104 @@ export default function ManageProgram() {
     });
   };
 
+  // --- FUNCTIONAL TRAINING DATA + MUTATION HANDLERS ---
+  const fetchFunctionalTrainings = async () => {
+    setFtLoading(true);
+    setFtError(null);
+    try {
+      const response = await fetch(apiUrl('/api/postgres/functional-training'));
+      if (!response.ok) throw new Error('Failed to load functional training.');
+      const data = await response.json();
+      setFunctionalTrainings(Array.isArray(data.data) ? data.data : []);
+    } catch (err: any) {
+      setFtError(err.message || 'Something went wrong while loading functional training.');
+      setFunctionalTrainings([]);
+    } finally {
+      setFtLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'functionalTraining') fetchFunctionalTrainings();
+  }, [activeTab]);
+
+  const existingFtTeams = Array.from(new Set(functionalTrainings.map(t => t.team))).sort();
+
+  const handleOpenAddFt = () => {
+    setFtModalMode('add');
+    setEditingFtId(null);
+    setFtTeam('');
+    setFtTitle('');
+    setFtLink('');
+    setIsFtModalOpen(true);
+  };
+
+  const handleOpenEditFt = (item: FunctionalTrainingItem) => {
+    setFtModalMode('edit');
+    setEditingFtId(item.id);
+    setFtTeam(item.team);
+    setFtTitle(item.title);
+    setFtLink(item.link);
+    setIsFtModalOpen(true);
+  };
+
+  const handleSaveFt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ftTeam.trim()) return showAlert('Please enter a team.', 'error');
+    if (!ftTitle.trim()) return showAlert('Please enter a title.', 'error');
+    if (!ftLink.trim()) return showAlert('Please enter a video/resource link.', 'error');
+
+    setFtSaving(true);
+    try {
+      const body = { team: ftTeam.trim(), title: ftTitle.trim(), link: ftLink.trim() };
+      const response = ftModalMode === 'add'
+        ? await fetch(apiUrl('/api/postgres/functional-training'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+        : await fetch(apiUrl(`/api/postgres/functional-training/${editingFtId}`), {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+
+      const responseData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(responseData.error || `Server responded with status ${response.status}`);
+      }
+
+      setIsFtModalOpen(false);
+      showAlert(ftModalMode === 'add' ? 'Training link added successfully!' : 'Training link updated successfully!', 'success');
+      await fetchFunctionalTrainings();
+    } catch (err: any) {
+      showAlert(`Failed to save training link: ${err.message}`, 'error');
+    } finally {
+      setFtSaving(false);
+    }
+  };
+
+  const handleDeleteFt = (item: FunctionalTrainingItem) => {
+    setConfirmDialog({
+      isOpen: true,
+      message: `Delete "${item.title}" for team ${item.team}? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const response = await fetch(apiUrl(`/api/postgres/functional-training/${item.id}`), { method: 'DELETE' });
+          const responseData = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(responseData.error || 'Failed to delete training link.');
+          }
+          showAlert('Training link deleted successfully!', 'success');
+          await fetchFunctionalTrainings();
+        } catch (err: any) {
+          showAlert(`Error during deletion: ${err.message}`, 'error');
+        }
+      },
+    });
+  };
+
   return (
     <AppShell currentTab="manageprogram">
       <div className="admin-container" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
@@ -1104,7 +1224,7 @@ export default function ManageProgram() {
 
         {/* Global Configuration Tab Navigators */}
         <div className="admin-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border)' }}>
-          {(['questions', 'timers', 'syllabus', 'users'] as const).map((tab) => (
+          {(['questions', 'timers', 'syllabus', 'users', 'functionalTraining'] as const).map((tab) => (
             <div
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1122,6 +1242,7 @@ export default function ManageProgram() {
               {tab === 'timers' && '⏱ Timers & Pass Marks'}
               {tab === 'syllabus' && '📝 Syllabus Content & Links'}
               {tab === 'users' && '👥 User Management'}
+              {tab === 'functionalTraining' && '🎓 Functional Training'}
             </div>
           ))}
         </div>
@@ -1739,6 +1860,60 @@ export default function ManageProgram() {
           </div>
         )}
 
+        {/* ──────────────── FUNCTIONAL TRAINING MANAGEMENT FEATURE TAB VIEW ──────────────── */}
+        {activeTab === 'functionalTraining' && (
+          <div id="adminFunctionalTraining">
+            {ftLoading ? (
+              <div className="empty"><p>Loading functional training...</p></div>
+            ) : ftError ? (
+              <div className="empty" style={{ border: '1px dashed red' }}>
+                <p style={{ color: '#f87171' }}>⚠️ {ftError}</p>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <p style={{ color: 'var(--text3)', margin: 0, fontSize: '14px' }}>
+                    Team-specific training links shown on the learner-facing Functional Training page.
+                  </p>
+                  <button className="btn-add" onClick={handleOpenAddFt} style={{ backgroundColor: 'var(--purple)', borderColor: 'var(--purple)', color: '#fff' }}>
+                    + Add Training
+                  </button>
+                </div>
+
+                {functionalTrainings.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text3)' }}>
+                    No functional training links yet.
+                  </div>
+                ) : (
+                  Array.from(new Set(functionalTrainings.map(t => t.team))).map(team => (
+                    <div key={team} style={{ marginBottom: '24px' }}>
+                      <h4 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text3)', margin: '0 0 10px 0' }}>
+                        {team}
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))', gap: '16px' }}>
+                        {functionalTrainings.filter(t => t.team === team).map(item => (
+                          <div key={item.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--text1)', fontSize: '14px', marginBottom: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.title}
+                            </div>
+                            <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--purple-l)', wordBreak: 'break-all', display: 'block', marginBottom: '14px' }}>
+                              {item.link}
+                            </a>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button className="btn-edit" style={{ flex: 1 }} onClick={() => handleOpenEditFt(item)}>✎ Edit</button>
+                              <button className="btn-del" onClick={() => handleDeleteFt(item)}>🗑</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* ──────────────── QUESTION MUTATION DIALOG MODAL ──────────────── */}
         {isModalOpen && (
           <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -2188,6 +2363,65 @@ export default function ManageProgram() {
                   <button type="button" className="btn-edit" onClick={() => setIsUserModalOpen(false)}>Cancel</button>
                   <button type="submit" className="btn-add" disabled={userSaving} style={{ backgroundColor: 'var(--purple)', borderColor: 'var(--purple)', color: '#fff', boxShadow: 'none', opacity: userSaving ? 0.6 : 1 }}>
                     {userSaving ? 'Saving...' : userModalMode === 'add' ? 'Create User' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ──────────────── FUNCTIONAL TRAINING ADD / EDIT DIALOG MODAL ──────────────── */}
+        {isFtModalOpen && (
+          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1003 }}>
+            <div className="modal-content" style={{ background: 'var(--surface)', padding: '24px', borderRadius: '8px', width: '460px', border: '1px solid var(--purple)', boxShadow: '0 0 24px rgba(0,0,0,0.5)' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--purple-l)' }}>
+                {ftModalMode === 'add' ? 'Add Training Link' : 'Edit Training Link'}
+              </h3>
+              <form onSubmit={handleSaveFt}>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', color: 'var(--text2)' }}>Team</label>
+                  <input
+                    type="text"
+                    className="inp"
+                    style={{ width: '100%' }}
+                    value={ftTeam}
+                    onChange={(e) => setFtTeam(e.target.value)}
+                    placeholder="e.g. TAC-RTP"
+                    list="ft-team-suggestions"
+                  />
+                  <datalist id="ft-team-suggestions">
+                    {existingFtTeams.map(t => <option key={t} value={t} />)}
+                  </datalist>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', color: 'var(--text2)' }}>Title</label>
+                  <input
+                    type="text"
+                    className="inp"
+                    style={{ width: '100%' }}
+                    value={ftTitle}
+                    onChange={(e) => setFtTitle(e.target.value)}
+                    placeholder="Training session title"
+                  />
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', color: 'var(--text2)' }}>Video / Resource Link</label>
+                  <input
+                    type="url"
+                    className="inp"
+                    style={{ width: '100%' }}
+                    value={ftLink}
+                    onChange={(e) => setFtLink(e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button type="button" className="btn-edit" onClick={() => setIsFtModalOpen(false)}>Cancel</button>
+                  <button type="submit" className="btn-add" disabled={ftSaving} style={{ backgroundColor: 'var(--purple)', borderColor: 'var(--purple)', color: '#fff', boxShadow: 'none', opacity: ftSaving ? 0.6 : 1 }}>
+                    {ftSaving ? 'Saving...' : ftModalMode === 'add' ? 'Add Training' : 'Save Changes'}
                   </button>
                 </div>
               </form>

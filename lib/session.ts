@@ -54,6 +54,21 @@ export function getSessionUid(): string | null {
   }
 }
 
+// Reads `team` straight from the cached session so callers can render the
+// right content on first paint instead of waiting on a profile fetch.
+export function getSessionTeam(): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as { team?: string };
+    return typeof session?.team === "string" ? session.team : null;
+  } catch {
+    return null;
+  }
+}
+
 function initialsFromName(name: string): string {
   return (
     name

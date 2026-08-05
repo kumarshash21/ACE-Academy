@@ -531,6 +531,7 @@ import { useState, useEffect } from "react";
 import AppShell from "../../components/AppShell";
 import { apiUrl } from "@/lib/api";
 import { normalizeResourceUrl } from "@/lib/url";
+import { notifyDoneUpdated } from "@/lib/xp-streak";
 
 const COURSE_TABS = [
   { id: "rtp", name: "Ranger RTP", icon: "🤖", cssClass: "rtp" },
@@ -740,6 +741,9 @@ export default function SyllabusPage() {
 
       // Save it back. This event triggers the 'storage' listener in index.html!
       localStorage.setItem('ace2_done', JSON.stringify(aceDone));
+      // 'storage' only fires in *other* tabs/frames — fire this so the sidebar's
+      // XP/streak widget in this same tab updates immediately too.
+      notifyDoneUpdated();
     } catch (err) {
       console.error("Failed to sync module progress to localStorage:", err);
     }

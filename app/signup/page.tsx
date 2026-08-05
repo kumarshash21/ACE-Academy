@@ -48,6 +48,7 @@ export default function SignupPage() {
     }
 
     setIsSubmitting(true);
+    
 
     try {
       const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);

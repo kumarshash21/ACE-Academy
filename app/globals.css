@@ -271,6 +271,27 @@ input, textarea, select {
   border-radius: 10px;
 }
 
+.sid-bottom {
+  margin-top: auto;
+  padding: 12px 11px 4px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.sid-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+}
+
+.sid-stat-ico { font-size: 13px; line-height: 1; }
+
 .main {
   flex: 1;
   overflow-y: auto;

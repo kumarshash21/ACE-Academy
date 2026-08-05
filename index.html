@@ -266,6 +266,15 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   background:rgba(109,82,232,.2);color:var(--purple-l);
   padding:2px 7px;border-radius:10px
 }
+.sid-bottom{
+  margin-top:auto;padding:12px 11px 4px;border-top:1px solid var(--border);
+  display:flex;flex-direction:row;align-items:center;gap:14px
+}
+.sid-stat{
+  display:flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:700;color:var(--text2)
+}
+.sid-stat-ico{font-size:13px;line-height:1}
 
 /* ── MAIN ── */
 .main{flex:1;overflow-y:auto;padding:28px 30px}
@@ -1245,7 +1254,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
           <span class="go-logo-text">GreyOrange</span>
         </div>
         <div class="login-title">ACE Academy</div>
-        <div class="login-sub">AUTOMATION CERTIFICATION &amp; EXCELLENCE</div>
+        <div class="login-sub">Accelerated Capability Engine</div>
       </div>
       <div class="login-card">
         <div class="login-err" id="loginErr">⚠ Incorrect email or password. Please try again.</div>
@@ -1292,7 +1301,8 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         <span class="tb-brand">ACE Academy</span>
       </div>
       <div class="tb-divider"></div>
-      <span class="tb-tag">Automation Certification &amp; Excellence</span>
+
+      <span class="tb-tag">Accelerated Capability Engine</span>
     </div>
     <div class="tb-right">
       <div class="user-chip">
@@ -1310,11 +1320,17 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
       <div class="nav" id="n-syllabus"><span class="nav-ico">◈</span><a href="/ace_academy/syllabus" target="_top">Syllabus</a></div>
       <div class="nav" id="n-assessment"><span class="nav-ico">✎</span><a href="/ace_academy/assessment" target="_top">Assessment</a></div>
       <div class="nav" id="n-certifications"><span class="nav-ico">◎</span><a href="/ace_academy/certifications" target="_top">My Certifications</a></div>
-      <div class="nav" id="n-globalCourse"><span class="nav-ico">◎</span><a href="/ace_academy/globalCourse" target="_top">Global Courses</a></div>
+      <div class="nav" id="n-functionaltraining"><span class="nav-ico">◎</span><a href="/ace_academy/functionaltraining" target="_top">Functional Training</a></div>
+      <div class="nav" id="n-functionaltraining"><span class="nav-ico">ⓘ</span><a href="/ace_academy/about" target="_top">About</a></div>
       <div class="sid-label" id="adminSec" style="display:none">Admin</div>
       <div class="nav" id="n-admin" style="display:none"><span class="nav-ico">⚙</span><a href="/ace_academy/manageprogram" target="_top">Manage Program</a></div>
       <div class="nav" id="n-scores" style="display:none"><span class="nav-ico">≡</span><a href="/ace_academy/scores" target="_top">All Scores</a></div>
       <div class="nav" id="n-userprogress" style="display:none"><span class="nav-ico">◈</span><a href="/ace_academy/userprogress" target="_top">User Progress</a></div>
+
+      <div class="sid-bottom">
+        <div class="sid-stat" title="Total XP"><span class="sid-stat-ico">⚡</span><span id="sidXp">0 XP</span></div>
+        <div class="sid-stat" title="Day streak"><span class="sid-stat-ico">🔥</span><span id="sidStreak">0</span></div>
+      </div>
     </div>
 
     <div class="main" id="main">
@@ -1385,6 +1401,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
           <option value="CEM">CEM</option>
           <option value="CAC">CAC</option>
           <option value="IM">IM</option>
+          <option value="SIM">SIM</option>
         </select>
 
         <div class="rank-cert-tabs" id="rankTeamProdTabs">
@@ -1561,6 +1578,46 @@ const PERSONA_CERTS={
   'SIM': ['pathfinder','navigator','grandmaster','toolscert'],
   'default':           ['pathfinder','navigator','grandmaster','toolscert'],
 };
+
+// XP awarded per completed module, keyed by the normalized cert-level name
+// baked into every "ace2_done" key (e.g. "rtp-1.1.1-pathfinder").
+const XP_PER_LEVEL={pathfinder:2,navigator:3,grandmaster:5,toolsspecialist:2};
+
+// "ace2_done" keys are "{productId}-{moduleCode}-{levelName}"; productId and
+// levelName never contain hyphens, so the last segment is always the level.
+function levelFromDoneKey(key){return key.slice(key.lastIndexOf('-')+1)}
+
+function computeXpFromDone(done){
+  if(!done) return 0;
+  return Object.keys(done).reduce((sum,key)=>sum+(XP_PER_LEVEL[levelFromDoneKey(key)]||0),0);
+}
+
+function computeStreakFromDone(done){
+  if(!done) return 0;
+  const dates=new Set(Object.values(done).map(iso=>String(iso).slice(0,10)));
+  if(dates.size===0) return 0;
+
+  const cursor=new Date();
+  const todayStr=cursor.toISOString().slice(0,10);
+  if(!dates.has(todayStr)) cursor.setDate(cursor.getDate()-1);
+
+  let streak=0;
+  while(dates.has(cursor.toISOString().slice(0,10))){
+    streak++;
+    cursor.setDate(cursor.getDate()-1);
+  }
+  return streak;
+}
+
+function renderSidebarStats(userDone){
+  const xpEl=document.getElementById('sidXp');
+  const streakEl=document.getElementById('sidStreak');
+  if(!xpEl||!streakEl) return;
+  const xp=computeXpFromDone(userDone);
+  const streak=computeStreakFromDone(userDone);
+  xpEl.textContent=`${xp} XP`;
+  streakEl.textContent=`${streak}`;
+}
 
 function getAllowedLevelsForTeam(team){
   const allowed=PERSONA_CERTS[team]||PERSONA_CERTS['default'];
@@ -2562,6 +2619,7 @@ function rDash(){
   document.getElementById('sCovered').textContent=Object.keys(userDone).length;
   document.getElementById('sEarned').textContent=earnedCount;
   document.getElementById('sBest').textContent=best;
+  renderSidebarStats(userDone);
 
   renderProgressSkeleton();
 
@@ -2575,6 +2633,7 @@ function rDash(){
       doneAll[CU.id]=userDone;
       sDone(doneAll);
       document.getElementById('sCovered').textContent=Object.keys(userDone).length;
+      renderSidebarStats(userDone);
     }
 
     fetchAllSyllabusCounts().then(countsByProduct=>{

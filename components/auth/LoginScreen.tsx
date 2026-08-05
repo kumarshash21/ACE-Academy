@@ -55,7 +55,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           </div>
           <div className="login-title">ACE Academy</div>
           <div className="login-sub">
-            Automation Certification &amp; Excellence — Sign in to continue
+            Accelerated Capability Engine — Sign in to continue
           </div>
         </div>
         <div className="login-card">

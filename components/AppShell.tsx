@@ -154,7 +154,16 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation"; // Added usePathname
 import Link from "next/link";
 import logo from "../public/assets/img/GO_LOGO.jpg";
-import { isSessionExpired } from "@/lib/session";
+import { getSessionUid, isSessionExpired } from "@/lib/session";
+import { apiUrl } from "@/lib/api";
+import type { DoneRecord } from "@/lib/progress";
+import {
+  computeStreakFromDone,
+  computeXpFromDone,
+  readLocalDoneForUser,
+  subscribeDoneUpdated,
+  writeLocalDoneForUser,
+} from "@/lib/xp-streak";
 
 function loadSavedSession() {
   try {
@@ -241,6 +250,42 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
     return () => clearInterval(interval);
   }, [router]);
 
+  // XP + day streak, derived from completed syllabus modules ("ace2_done").
+  // Paint instantly from the local cache, then reconcile with the Firestore-backed
+  // server snapshot (the source of truth), and stay live for same-tab/cross-tab
+  // completions via subscribeDoneUpdated.
+  const [xp, setXp] = useState(0);
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const uid = getSessionUid();
+    if (!uid) return;
+
+    const refreshFromLocal = () => {
+      const done = readLocalDoneForUser(uid);
+      setXp(computeXpFromDone(done));
+      setStreak(computeStreakFromDone(done));
+    };
+
+    refreshFromLocal();
+    const unsubscribe = subscribeDoneUpdated(refreshFromLocal);
+
+    fetch(apiUrl(`/api/postgres/user-progress/${encodeURIComponent(uid)}`))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((snapshot: { done?: DoneRecord } | null) => {
+        if (!snapshot?.done) return;
+        writeLocalDoneForUser(uid, snapshot.done);
+        setXp(computeXpFromDone(snapshot.done));
+        setStreak(computeStreakFromDone(snapshot.done));
+      })
+      .catch(() => {
+        // Local cache already painted above; server sync is best-effort.
+      });
+
+    return unsubscribe;
+  }, [user]);
+
   // CRITICAL: If we have no user, and we are redirecting away from a sub-page,
   // do NOT render the layout or children. This stops the page flash completely.
   if (isCheckingAuth && pathname !== "/") {
@@ -270,7 +315,7 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
             <span className="tb-brand">ACE Academy</span>
           </div>
           <div className="tb-divider"></div>
-          <span className="tb-tag">Automation Certification &amp; Excellence</span>
+          <span className="tb-tag">Accelerated Capability Engine</span>
         </div>
 
         <div className="tb-right">
@@ -305,8 +350,11 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
           <Link href={hrefFor("certifications")} prefetch className={`nav ${currentTab === "certifications" ? "on" : ""}`}>
             <span className="nav-ico">◎</span>My Certifications
           </Link>
-          <Link href={hrefFor("globalCourse")} prefetch className={`nav ${currentTab === "globalCourse" ? "on" : ""}`}>
-            <span className="nav-ico">◎</span>Global Course
+          <Link href={hrefFor("functionaltraining")} prefetch className={`nav ${currentTab === "functionaltraining" ? "on" : ""}`}>
+            <span className="nav-ico">◎</span>Functional Training
+          </Link>
+          <Link href={hrefFor("about")} prefetch className={`nav ${currentTab === "about" ? "on" : ""}`}>
+            <span className="nav-ico">ⓘ</span>About
           </Link>
 
           {user?.role === "admin" && (
@@ -323,6 +371,17 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
               </Link>
             </>
           )}
+
+          <div className="sid-bottom">
+            <div className="sid-stat" title="Total XP">
+              <span className="sid-stat-ico">⚡</span>
+              <span>{xp} XP</span>
+            </div>
+            <div className="sid-stat" title="Day streak">
+              <span className="sid-stat-ico">🔥</span>
+              <span>{streak}</span>
+            </div>
+          </div>
         </div>
 
         <div className="main" id="main">

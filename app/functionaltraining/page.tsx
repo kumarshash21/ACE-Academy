@@ -196,13 +196,13 @@ export default function FunctionalTraining() {
         )} */}
       </div>
 
-      <div className="ace-sf-banner">
+      {/* <div className="ace-sf-banner">
         <img src={salesforceIcon.src} alt="Salesforce" className="ace-sf-icon" />
         <div className="ace-sf-text">
           <span className="ace-sf-title">Salesforce Training</span>
           <span className="ace-sf-sub">All topics and modules below are part of the Salesforce training program</span>
         </div>
-      </div>
+      </div> */}
 
       {totalModules > 0 && (
         <div className="ace-stats">

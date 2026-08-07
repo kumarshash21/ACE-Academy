@@ -12,7 +12,7 @@ const PILLARS = [
     ),
     tint: "#3197f5",
     title: "What is ACE Academy?",
-    text: "ACE Academy is GreyOrange's internal learning platform for building deep, hands-on expertise in our automation systems. It brings together structured syllabuses, assessments, functional training, and certifications into a single place — so every learner has a clear, guided path from onboarding to mastery.",
+    text: "ACE Academy is GreyOrange's internal learning platform for structured syllabuses, assessments, functional training, and certifications into a single place — so every learner has a clear, guided path from onboarding to mastery.",
   },
   {
     icon: (
@@ -37,7 +37,7 @@ const PILLARS = [
     ),
     tint: "#d29922",
     title: "Team Behind It",
-    text: "ACE Academy is built and maintained by a small, dedicated team at GreyOrange passionate about learning and enablement — combining product knowledge, instructional design, and engineering to keep the platform useful and up to date for everyone in the organization.",
+    text: "ACE Academy is built and maintained by a small, dedicated team at Automation, Support Team at GreyOrange passionate about learning and enablement — combining product knowledge, instructional design, and engineering to keep the platform useful and up to date for everyone in the organization.",
   },
 ];
 

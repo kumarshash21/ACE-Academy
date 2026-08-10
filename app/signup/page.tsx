@@ -8,7 +8,7 @@ import { auth } from "@/lib/firebase";
 import { greyOrangeEmailErrorMessage, isGreyOrangeEmail, normalizeEmail } from "@/lib/email-validation";
 import PasswordField from "@/components/auth/PasswordField";
 import { apiUrl } from "@/lib/api";
-const TEAM_OPTIONS = ['TAC','Change Management','Client Director','CEM','CAC','IM','Management','Product Manager','SIM'];
+const TEAM_OPTIONS = ['TAC','Change Management','Client Director','CEM','CAC','IM','Management','Product Manager','Solution Integration'];
 
 export default function SignupPage() {
   const router = useRouter();

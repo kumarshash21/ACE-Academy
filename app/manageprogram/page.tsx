@@ -7,7 +7,7 @@ import { apiUrl } from '@/lib/api';
 import { normalizeResourceUrl } from '@/lib/url';
 
 // Team options available when creating/editing a user (mirrors signup).
-const TEAM_OPTIONS = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM', 'Management', 'Product Manager', 'SIM'];
+const TEAM_OPTIONS = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM', 'Management', 'Product Manager', 'Solution Integration'];
 
 // --- CONFIGURATION DEFINITIONS ---
 const PRODUCTS = [

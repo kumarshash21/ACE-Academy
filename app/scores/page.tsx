@@ -40,7 +40,7 @@ export default function AllScores() {
 
   const allRows: ScoreRow[] = useMemo(() => deriveScoreRows(users), [users]);
 
-  const teams = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM','SIM',
+  const teams = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM','Solution Integration',
   ];
 
   const rows: ScoreRow[] = useMemo(() => {

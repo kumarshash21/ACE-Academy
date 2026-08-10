@@ -70,7 +70,7 @@ export default function UserProgressPage() {
     };
   }, []);
 
-  const teams = ["TAC", "Change Management", "Client Director", "CEM", "CAC", "IM",'SIM'];
+  const teams = ["TAC", "Change Management", "Client Director", "CEM", "CAC", "IM",'Solution Integration'];
 
   const handleExportCsv = () => {
     const csv = userProgressRowsToCsv(rows);

@@ -27,6 +27,9 @@ const TOOLS_LEVEL_SCHEMAS = [
   { id: "specialist", name: "Specialist", subtitle: "Core Tools & Methodology", icon: "🔧", cssClass: "tools-specialist" },
 ];
 
+// Tier order backing DEFAULT_LEVEL_SCHEMAS, used to compare against a user's allowedLevel.
+const LEVEL_ORDER = ["pathfinder", "navigator", "grandmaster"];
+
 interface Question {
   id?: string;
   questionText: string;
@@ -61,6 +64,15 @@ interface SavedProgress {
 
 function getModuleNameForTab(tabId: string): string | undefined {
   return COURSE_TABS.find((tab) => tab.id === tabId)?.name;
+}
+
+// Same tab -> allowedLevel gating logic used to decide which level cards render,
+// reused so the metadata prefetch fetches exactly the levels that will be shown.
+function getLevelSchemasForTab(tabId: string, allowedLevel: number | undefined) {
+  if (tabId === "tools") return TOOLS_LEVEL_SCHEMAS;
+  return typeof allowedLevel === "number"
+    ? DEFAULT_LEVEL_SCHEMAS.filter((level) => LEVEL_ORDER.indexOf(level.id) < allowedLevel)
+    : DEFAULT_LEVEL_SCHEMAS;
 }
 
 // Stable key for a question's answer. Prefers a real id from the quiz doc,
@@ -105,8 +117,10 @@ function clearProgress(uid: string | null, quizId: string) {
 export default function AssessmentsPage() {
   const [activeTabId, setActiveTabId] = useState<string>("rtp");
   const [assessmentMeta, setAssessmentMeta] = useState<Record<string, QuizData>>({});
+  const [metaLoaded, setMetaLoaded] = useState<Record<string, boolean>>({});
   const [activeLoadingLevel, setActiveLoadingLevel] = useState<string | null>(null);
   const [certifications, setCertifications] = useState<CertificationModule[]>([]);
+  const [allowedLevel, setAllowedLevel] = useState<number | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- Quiz Execution States ---
@@ -144,12 +158,16 @@ export default function AssessmentsPage() {
         setCertifications(profile.certifications);
         syncSessionFromProfile(profile);
       }
+      if (typeof profile?.allowedLevel === "number") {
+        setAllowedLevel(profile.allowedLevel);
+      }
     });
   }, []);
 
   const handleTabChange = (tabId: string) => {
     setActiveTabId(tabId);
     setAssessmentMeta({});
+    setMetaLoaded({});
   };
 
   const startQuiz = (data: QuizData, saved: SavedProgress | null) => {
@@ -285,6 +303,9 @@ const handleLevelClick = async (levelId: string) => {
         setCertifications(profile.certifications);
         syncSessionFromProfile(profile);
       }
+      if (typeof profile?.allowedLevel === "number") {
+        setAllowedLevel(profile.allowedLevel);
+      }
 
       const isPassed = payload.passed ?? finalScorePercent >= passThreshold;
       const savedScore = payload.newScore ?? finalScorePercent;
@@ -340,6 +361,39 @@ const handleLevelClick = async (levelId: string) => {
       savedAt: Date.now(),
     });
   }, [activeQuizData, selectedAnswers, currentQuestionIndex, timeLeft]);
+
+  // Prefetch time/pass-percentage metadata for every level card of the active tab up
+  // front, so the pills show real backend values instead of the 30min/75% fallback
+  // defaults until the user clicks a level.
+  useEffect(() => {
+    let cancelled = false;
+    const schemas = getLevelSchemasForTab(activeTabId, allowedLevel);
+
+    schemas.forEach(async (level) => {
+      const quizId = `${activeTabId}-${level.id}`;
+      try {
+        const response = await fetch(apiUrl(`/api/postgres/assessments?quizId=${quizId}`));
+        if (response.ok && !cancelled) {
+          const data: QuizData = await response.json();
+          if (!cancelled) {
+            setAssessmentMeta((prev) => ({ ...prev, [level.id]: data }));
+          }
+        }
+      } catch {
+        // Leave the fallback defaults in place if metadata can't be fetched.
+      } finally {
+        // Mark settled (success or failure) so the pill stops showing the
+        // loading placeholder and falls back to defaults if nothing arrived.
+        if (!cancelled) {
+          setMetaLoaded((prev) => ({ ...prev, [level.id]: true }));
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTabId, allowedLevel]);
 
   const ModernSystemModal = ({ title, message, onConfirm, onCancel, confirmText = "OK", cancelText = "Cancel", isDestructive = false }: {
     title: string;
@@ -423,7 +477,7 @@ const handleLevelClick = async (levelId: string) => {
     return (
       <div style={{ backgroundColor: "#0d1117", color: "#ffffff", minHeight: "100vh", width: "100vw", fontFamily: "sans-serif", padding: "40px 20px", boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center" }}>
         {showExitConfirm && (
-          <ModernSystemModal title="Exit Assessment?" message="Are you sure you want to exit? Your progressive answers will be lost." confirmText="Exit Quiz" isDestructive={true} onConfirm={() => { setShowExitConfirm(false); if (activeQuizData) clearProgress(getSessionUid(), activeQuizData.quizId); setActiveQuizData(null); }} onCancel={() => setShowExitConfirm(false)} />
+          <ModernSystemModal title="Exit Assessment?" message={`Exiting will submit the assessment with your currently marked answers (${answeredCount}/${totalQuestions} answered). Unanswered questions will be marked wrong.`} confirmText="Submit & Exit" isDestructive={true} onConfirm={() => { setShowExitConfirm(false); executeQuizSubmit(false); }} onCancel={() => setShowExitConfirm(false)} />
         )}
         {showSubmitConfirm && (
           <ModernSystemModal title="Finish Assessment?" message={answeredCount < totalQuestions ? `You have only answered ${answeredCount}/${totalQuestions} questions. Do you want to submit anyway?` : "Are you sure you want to finish and submit this assessment?"} confirmText="Submit Now" onConfirm={() => executeQuizSubmit(false)} onCancel={() => setShowSubmitConfirm(false)} />
@@ -465,8 +519,10 @@ const handleLevelClick = async (levelId: string) => {
     );
   }
 
-  // Determine active level schemas dynamically depending on the current selected tab
-  const activeLevelSchemas = activeTabId === "tools" ? TOOLS_LEVEL_SCHEMAS : DEFAULT_LEVEL_SCHEMAS;
+  // Determine active level schemas dynamically depending on the current selected tab.
+  // Tools & Techniques is ungated by allowedLevel; RTP/TTP only show the tiers the
+  // user's team/persona is allowed to cover.
+  const activeLevelSchemas = getLevelSchemasForTab(activeTabId, allowedLevel);
 
   return (
     <AppShell currentTab="assessment">
@@ -521,8 +577,9 @@ const handleLevelClick = async (levelId: string) => {
           //   ? isLevelUnlocked(certifications, moduleName, level.id as CertId) 
           //   : level.id === "pathfinder" || level.id === "specialist";
           
-          const displayMinutes = quizDetails?.timeLimit ? Math.floor(quizDetails.timeLimit / 60) : 30; 
+          const displayMinutes = quizDetails?.timeLimit ? Math.floor(quizDetails.timeLimit / 60) : 30;
           const displayPassPercent = quizDetails?.passingPercentage ?? 75;
+          const isMetaLoading = !metaLoaded[level.id];
 
           const cardClasses = [
             "a-card",
@@ -549,11 +606,11 @@ const handleLevelClick = async (levelId: string) => {
               </div>
 
               <div className="a-pills">
-                <div className="pill time">
-                  <span>⏱</span> {displayMinutes} min
+                <div className={`pill time${isMetaLoading ? " loading" : ""}`}>
+                  <span>⏱</span> {isMetaLoading ? "···" : `${displayMinutes} min`}
                 </div>
-                <div className="pill pass">
-                  Pass: {displayPassPercent}%
+                <div className={`pill pass${isMetaLoading ? " loading" : ""}`}>
+                  {isMetaLoading ? "···" : `Pass: ${displayPassPercent}%`}
                 </div>
                 {!isUnlocked && (
                   <div className="pill lock">

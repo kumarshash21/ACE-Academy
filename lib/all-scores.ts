@@ -24,6 +24,7 @@ export type ScoreRow = {
   attempts: number;
   result: ScoreResult;
   lastAttempt: string | null;
+  testDuration: number;
 };
 
 const normalized = (value: unknown) =>
@@ -96,6 +97,7 @@ export function deriveScoreRows(users: ScoreSourceUser[]): ScoreRow[] {
           attempts: typeof level.noOfAttempts === "number" ? level.noOfAttempts : 0,
           result: resultForLevel(level),
           lastAttempt: level.lastAttemptDate ?? level.completedAt ?? null,
+          testDuration: typeof level.attemptedTime === "number" ? level.attemptedTime : 0,
         });
       }
     }
@@ -115,9 +117,18 @@ export function formatScoreDate(value: string | null): string {
   return date.toLocaleString();
 }
 
+/** Formats a duration in seconds as e.g. "12m 34s" or "45s". */
+export function formatTestDuration(seconds: number): string {
+  if (!seconds || seconds <= 0) return "—";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  if (minutes === 0) return `${remainingSeconds}s`;
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
 /** Builds a CSV string (with header) from derived score rows. */
 export function scoreRowsToCsv(rows: ScoreRow[]): string {
-  const header = ["Name", "Team", "Product", "Certification", "Score%", "Attempts", "Result", "Last Attempt"];
+  const header = ["Name", "Team", "Product", "Certification", "Score%", "Attempts", "Result", "Test Duration", "Last Attempt"];
   const escape = (value: string | number) => {
     const str = String(value);
     return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
@@ -132,6 +143,7 @@ export function scoreRowsToCsv(rows: ScoreRow[]): string {
       row.bestScore,
       row.attempts,
       row.result,
+      formatTestDuration(row.testDuration),
       formatScoreDate(row.lastAttempt),
     ]
       .map(escape)

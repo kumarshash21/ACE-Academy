@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   deriveScoreRows,
   formatScoreDate,
+  formatTestDuration,
   scoreRowsToCsv,
   type ScoreRow,
   type ScoreSourceUser,
@@ -40,8 +41,7 @@ export default function AllScores() {
 
   const allRows: ScoreRow[] = useMemo(() => deriveScoreRows(users), [users]);
 
-  const teams = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM','Solution Integration',
-  ];
+  const teams = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM', 'Project Manager', 'Solution Integration'];
 
   const rows: ScoreRow[] = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -199,25 +199,26 @@ export default function AllScores() {
                   <th style={thStyle}>Best Score</th>
                   <th style={thStyle}>Attempts</th>
                   <th style={thStyle}>Result</th>
+                  <th style={thStyle}>Test Duration</th>
                   <th style={thStyle}>Last Attempt</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "var(--text3)" }}>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "32px", color: "var(--text3)" }}>
                       Loading assessment results...
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "#f87171" }}>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "32px", color: "#f87171" }}>
                       ⚠️ {error}
                     </td>
                   </tr>
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "var(--text3)" }}>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "32px", color: "var(--text3)" }}>
                       {allRows.length === 0
                         ? "No assessment data yet."
                         : "No results match your search or filters."}
@@ -243,6 +244,7 @@ export default function AllScores() {
                             <span style={{ color: "#f87171", fontWeight: 600 }}>Not passed</span>
                           )}
                         </td>
+                        <td style={tdStyle}>{formatTestDuration(row.testDuration)}</td>
                         <td style={{ ...tdStyle, color: "var(--text3)", fontSize: "12px" }}>
                           {formatScoreDate(row.lastAttempt)}
                         </td>

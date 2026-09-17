@@ -500,6 +500,7 @@ input, textarea, select {
 .ptab.on { color: white; border-color: transparent; }
 .ptab.rtp.on { background: var(--purple); }
 .ptab.ttp.on { background: var(--cyan); }
+.ptab.ril.on { background: var(--amber); }
 .ptab.tools.on { background: var(--green); }
 
 .ltabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }

@@ -13,6 +13,7 @@ const TEAM_OPTIONS = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC
 const PRODUCTS = [
   { id: 'rtp', name: 'Ranger RTP', icon: '🤖', certs: ['l1', 'l2', 'l3'], sections: [{ title: 'Core Architecture', mods: [{ code: 'MOD-101', title: 'Introduction to Butler', content: { l1: 'Default content text' }, docLink: '', videoLink: '', videoTitle: '' }] }] },
   { id: 'ttp', name: 'Ranger TTP', icon: '📦', certs: ['l1', 'l2', 'l3'], sections: [] },
+  { id: 'ril', name: 'Ranger RIL', icon: '🏭', certs: ['l1', 'l2', 'l3'], sections: [] },
   { id: 'tools', name: 'Tools & Techniques', icon: '🛠️', certs: ['specialist'], sections: [] },
 ];
 

@@ -1,7 +1,7 @@
 export type CertId = "pathfinder" | "navigator" | "grandmaster" | "toolscert";
 
 export type ProductSummary = {
-  id: "rtp" | "ttp" | "tools";
+  id: "rtp" | "ttp" | "tools" | "ril";
   name: string;
   sub: string;
   icon: string;
@@ -75,6 +75,14 @@ export const PRODUCTS: ProductSummary[] = [
     icon: "🛠️",
     certs: ["toolscert"],
     moduleCount: 27,
+  },
+  {
+    id: "ril",
+    name: "Ranger RIL",
+    sub: "Ranger Intralogistics",
+    icon: "🏭",
+    certs: ["pathfinder", "navigator", "grandmaster"],
+    moduleCount: 13,
   },
 ];
 

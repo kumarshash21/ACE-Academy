@@ -12,6 +12,7 @@ import { apiUrl } from "@/lib/api";
 const COURSE_TABS = [
   { id: "rtp", name: "Ranger RTP", icon: "🤖", cssClass: "rtp" },
   { id: "ttp", name: "Ranger TTP", icon: "📦", cssClass: "ttp" },
+  { id: "ril", name: "Ranger RIL", icon: "🏭", cssClass: "ril" },
   { id: "tools", name: "Tools & Techniques", icon: "🛠️", cssClass: "tools" },
 ];
 
@@ -349,6 +350,23 @@ const handleLevelClick = async (levelId: string) => {
     }, 1000);
 
     return () => clearInterval(timer);
+  }, [activeQuizData, executeQuizSubmit]);
+
+  // Auto-submit assessment when the user switches browser tabs/windows.
+  useEffect(() => {
+    if (!activeQuizData) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        executeQuizSubmit(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [activeQuizData, executeQuizSubmit]);
 
   // Persist in-progress state so the user can resume after a refresh/close.

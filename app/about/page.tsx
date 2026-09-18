@@ -76,7 +76,7 @@ export default function About() {
           </div>
 
           <div className="ace-contact-grid">
-            <a href="mailto:kumar.s.int@greyorange.com" className="ace-contact-card">
+            <a href="mailto:kumar.shashwat@greyorange.com" className="ace-contact-card">
               <div className="ace-contact-icon ace-icon-email">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                   <rect x="3" y="5" width="18" height="14" rx="2.5" />

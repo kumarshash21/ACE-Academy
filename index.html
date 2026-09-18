@@ -347,6 +347,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .ptab.on{color:white;border-color:transparent}
 .ptab.rtp.on{background:var(--purple)}
 .ptab.ttp.on{background:var(--cyan)}
+.ptab.ril.on{background:var(--amber)}
 .ptab.tools.on{background:var(--green)}
 
 /* ── LEVEL TABS ── */
@@ -1378,6 +1379,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         <div class="rank-cert-tabs" id="rankOrgProdTabs">
           <div class="rank-cert-tab on" data-prod="rtp" onclick="setRankProd('org','rtp')">🤖 RTP</div>
           <div class="rank-cert-tab" data-prod="ttp" onclick="setRankProd('org','ttp')">📦 TTP</div>
+          <div class="rank-cert-tab" data-prod="ril" onclick="setRankProd('org','ril')">🚚 RIL</div>
           <div class="rank-cert-tab" data-prod="tools" onclick="setRankProd('org','tools')">🛠️ Tools</div>
         </div>
         <div class="rank-cert-tabs" id="rankOrgLvlTabs">
@@ -1408,6 +1410,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         <div class="rank-cert-tabs" id="rankTeamProdTabs">
           <div class="rank-cert-tab on" data-prod="rtp" onclick="setRankProd('team','rtp')">🤖 RTP</div>
           <div class="rank-cert-tab" data-prod="ttp" onclick="setRankProd('team','ttp')">📦 TTP</div>
+          <div class="rank-cert-tab" data-prod="ril" onclick="setRankProd('team','ril')">🚚 RIL</div>
           <div class="rank-cert-tab" data-prod="tools" onclick="setRankProd('team','tools')">🛠️ Tools</div>
         </div>
         <div class="rank-cert-tabs" id="rankTeamLvlTabs">
@@ -1528,6 +1531,9 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
           <option value="ttp-pathfinder">📦 Ranger TTP — PathFinder</option>
           <option value="ttp-navigator">📦 Ranger TTP — Navigator</option>
           <option value="ttp-grandmaster">📦 Ranger TTP — Grand Master</option>
+          <option value="ril-pathfinder">🚚 Ranger RIL — PathFinder</option>
+          <option value="ril-navigator">🚚 Ranger RIL — Navigator</option>
+          <option value="ril-grandmaster">🚚 Ranger RIL — Grand Master</option>
           <option value="tools-toolscert">🛠️ Tools &amp; Techniques — Tools Specialist</option>
         </select>
       </div>
@@ -1911,6 +1917,41 @@ const PRODUCTS =[
       {code:'2.3.3',title:'Rollcage Put',content:{pathfinder:'<em>Content coming soon — TTP curriculum is currently under development.</em>',navigator:'<em>Content coming soon — TTP curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — TTP curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ttp-rollcage-put',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ttp-rollcage',videoTitle:'TTP Rollcage Put'}
     ]}
   ]},
+  {id:'ril',name:'Ranger RIL',sub:'RIL Tracker',icon:'🚚',certs:['pathfinder','navigator','grandmaster'],
+   sections:[
+    {title:'Platform & Infrastructure',mods:[
+      {code:'3.1.1',title:'Basic Architecture',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-architecture',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-architecture',videoTitle:'RIL Architecture Overview'},
+      {code:'3.1.2',title:'Database & Services',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-database',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-database',videoTitle:'RIL Database & Services'},
+      {code:'3.1.3',title:'Cloud / On-Prem',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/SRE/pages/ril-cloud-onprem',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-cloud-onprem',videoTitle:'RIL Cloud vs On-Prem Guide'},
+      {code:'3.1.4',title:'Safety Controllers',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/AKB/pages/ril-safety',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-safety',videoTitle:'RIL Safety Controllers'},
+      {code:'3.1.5',title:'Tower Application',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/AKB/pages/ril-tower',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-tower',videoTitle:'RIL Tower Application'},
+      {code:'3.1.6',title:'Manager Dashboard',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/GEM/pages/ril-dashboard',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-dashboard',videoTitle:'RIL Manager Dashboard'}
+    ]},
+    {title:'Pick Flows',mods:[
+      {code:'3.2.1',title:'Vanilla Pick',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-vanilla-pick',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-vanilla-pick',videoTitle:'RIL Vanilla Pick Flow'},
+      {code:'3.2.2',title:'MTU Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-mtu-flow',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-mtu-flow',videoTitle:'RIL MTU Flow'},
+      {code:'3.2.3',title:'Rollcage Pick Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-rollcage-pick',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-rollcage-pick',videoTitle:'RIL Rollcage Pick Flow'},
+      {code:'3.2.4',title:'Packing Box Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-packing-box',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-packing-box',videoTitle:'RIL Packing Box Flow'},
+      {code:'3.2.5',title:'Tote Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-tote-flow',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-tote-flow',videoTitle:'RIL Tote Flow'},
+      {code:'3.2.6',title:'Zero Walk Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-zero-walk',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-zero-walk',videoTitle:'RIL Zero Walk Flow'},
+      {code:'3.2.7',title:'Shuttle Pick Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-shuttle-pick',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-shuttle-pick',videoTitle:'RIL Shuttle Pick Flow'},
+      {code:'3.2.8',title:'Streaming Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-streaming-flow',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-streaming-flow',videoTitle:'RIL Streaming Flow'},
+      {code:'3.2.9',title:'Item Recall',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-item-recall',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-item-recall',videoTitle:'RIL Item Recall'},
+      {code:'3.2.10',title:'Re-warehousing',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-rewarehousing',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-rewarehousing',videoTitle:'RIL Re-warehousing'}
+    ]},
+    {title:'Put Flows',mods:[
+      {code:'3.3.1',title:'Vanilla Put (UDP)',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-vanilla-put',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-vanilla-put',videoTitle:'RIL Vanilla UDP Put Flow'},
+      {code:'3.3.2',title:'Rollcage Put',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-rollcage-put',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-rollcage-put',videoTitle:'RIL Rollcage Put Flow'},
+      {code:'3.3.3',title:'UDP Put',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-udp-put',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-udp-put',videoTitle:'RIL UDP Put Deep Dive'},
+      {code:'3.3.4',title:'SDP Put',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-sdp-put',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-sdp-put',videoTitle:'RIL SDP Put Flow'},
+      {code:'3.3.5',title:'PPP Flow',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/GRYMTTR/pages/ril-ppp-flow',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-ppp-flow',videoTitle:'RIL PPP Flow'},
+      {code:'3.3.6',title:'Pallet Put',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/CE/pages/ril-pallet-put',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-pallet-put',videoTitle:'RIL Pallet Put Operations'}
+    ]},
+    {title:'Audit Flows',mods:[
+      {code:'3.4.1',title:'Vanilla Audit',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-vanilla-audit',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-vanilla-audit',videoTitle:'RIL Vanilla Audit Flow'},
+      {code:'3.4.2',title:'Cyclic Audit',content:{pathfinder:'<em>Content coming soon — RIL curriculum is currently under development.</em>',navigator:'<em>Content coming soon — RIL curriculum is currently under development.</em>',grandmaster:'<em>Content coming soon — RIL curriculum is currently under development.</em>'},docLink:'https://greyorange-work.atlassian.net/wiki/spaces/BS/pages/ril-cyclic-audit',videoLink:'https://confluence.greyorange.com/wiki/spaces/TAC/pages/training/ril-cyclic-audit',videoTitle:'RIL Cyclic Audit Deep Dive'}
+    ]}
+  ]},
   {id:'tools',name:'Tools & Techniques',sub:'Operational Toolkit',icon:'🛠️',certs:['toolscert'],
    sections:[
     {title:'Log Analysis',mods:[
@@ -1957,6 +1998,9 @@ const DEFAULT_QUESTIONS={
   'rtp-pathfinder':[],
   'rtp-navigator':[],
   'rtp-grandmaster':[],
+  'ril-pathfinder':[],
+  'ril-navigator':[],
+  'ril-grandmaster':[],
   'tools-toolscert':[]
 };
 

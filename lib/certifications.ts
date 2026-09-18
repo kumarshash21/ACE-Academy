@@ -17,11 +17,12 @@ export type CertificationModule = {
   levels: LevelProgress[];
 };
 
-// Per-module level structure. Ranger RTP/TTP follow the gated three-tier path;
+// Per-module level structure. Ranger RTP/TTP/RIL follow the gated three-tier path;
 // Tools & Techniques is a single standalone "Tools Specialist" certification.
 const MODULE_LEVELS: { module_name: string; levels: string[] }[] = [
   { module_name: "Ranger RTP", levels: ["PathFinder", "Navigator", "Grand Master"] },
   { module_name: "Ranger TTP", levels: ["PathFinder", "Navigator", "Grand Master"] },
+  { module_name: "Ranger RIL", levels: ["PathFinder", "Navigator", "Grand Master"] },
   { module_name: "Tools & Techniques", levels: ["Tools Specialist"] },
 ];
 

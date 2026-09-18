@@ -12,7 +12,7 @@ import { apiUrl } from "@/lib/api";
 const COURSE_TABS = [
   { id: "rtp", name: "Ranger RTP", icon: "🤖", cssClass: "rtp" },
   { id: "ttp", name: "Ranger TTP", icon: "📦", cssClass: "ttp" },
-  { id: "ril", name: "Ranger RIL", icon: "🏭", cssClass: "ril" },
+  { id: "ril", name: "Ranger RIL", icon: "🚚", cssClass: "ril" },
   { id: "tools", name: "Tools & Techniques", icon: "🛠️", cssClass: "tools" },
 ];
 

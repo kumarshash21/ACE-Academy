@@ -80,7 +80,7 @@ export const PRODUCTS: ProductSummary[] = [
     id: "ril",
     name: "Ranger RIL",
     sub: "Ranger Intralogistics",
-    icon: "🏭",
+    icon: "🚚",
     certs: ["pathfinder", "navigator", "grandmaster"],
     moduleCount: 13,
   },

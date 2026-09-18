@@ -536,7 +536,7 @@ import { notifyDoneUpdated } from "@/lib/xp-streak";
 const COURSE_TABS = [
   { id: "rtp", name: "Ranger RTP", icon: "🤖", cssClass: "rtp" },
   { id: "ttp", name: "Ranger TTP", icon: "📦", cssClass: "ttp" },
-  { id: "ril", name: "Ranger RIL", icon: "🏭", cssClass: "ril" },
+  { id: "ril", name: "Ranger RIL", icon: "🚚", cssClass: "ril" },
   { id: "tools", name: "Tools & Techniques", icon: "🛠️", cssClass: "tools" },
 ];
 
@@ -828,6 +828,12 @@ export default function SyllabusPage() {
                 {topic.title}
               </div>
 
+              {topic.modules.length === 0 ? (
+                <div className="empty">
+                  <div className="empty-ico">📂</div>
+                  <p>No content found.</p>
+                </div>
+              ) : (
               <div className="mod-grid">
                 {[...topic.modules].sort((a, b) => compareModuleCode(a.code, b.code)).map((mod, mIdx) => {
                   const moduleUniqueKey = mod.code || `${tIdx}-${mIdx}`;
@@ -997,6 +1003,7 @@ export default function SyllabusPage() {
                   );
                 })}
               </div>
+              )}
 
             </div>
           ))}

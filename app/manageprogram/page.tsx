@@ -13,7 +13,7 @@ const TEAM_OPTIONS = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC
 const PRODUCTS = [
   { id: 'rtp', name: 'Ranger RTP', icon: '🤖', certs: ['l1', 'l2', 'l3'], sections: [{ title: 'Core Architecture', mods: [{ code: 'MOD-101', title: 'Introduction to Butler', content: { l1: 'Default content text' }, docLink: '', videoLink: '', videoTitle: '' }] }] },
   { id: 'ttp', name: 'Ranger TTP', icon: '📦', certs: ['l1', 'l2', 'l3'], sections: [] },
-  { id: 'ril', name: 'Ranger RIL', icon: '🏭', certs: ['l1', 'l2', 'l3'], sections: [] },
+  { id: 'ril', name: 'Ranger RIL', icon: '🚚', certs: ['l1', 'l2', 'l3'], sections: [] },
   { id: 'tools', name: 'Tools & Techniques', icon: '🛠️', certs: ['specialist'], sections: [] },
 ];
 
@@ -1648,6 +1648,12 @@ export default function ManageProgram() {
                       </div>
                     </div>
 
+                    {topic.modules.length === 0 ? (
+                      <div className="empty">
+                        <div className="empty-ico">📂</div>
+                        <p>No content found.</p>
+                      </div>
+                    ) : (
                     <div className="mod-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(1fr, 1fr))', gap: '16px' }}>
                       {[...topic.modules].sort((a, b) => compareModuleCode(a.code, b.code)).map((mod, mIdx) => {
                         const moduleUniqueKey = mod.code || `${tIdx}-${mIdx}`;
@@ -1770,6 +1776,7 @@ export default function ManageProgram() {
                         );
                       })}
                     </div>
+                    )}
                   </div>
                 ))}
                 <button

@@ -51,7 +51,8 @@ function formatLastAttempt(value: string | null | undefined): string {
 }
 
 function mapFirestoreStatus(
-  status: LevelProgress["status"] | string | undefined
+  status: LevelProgress["status"] | string | undefined,
+  certId: CertId
 ): CertificationRow["status"] {
   switch (status) {
     case "completed":
@@ -64,7 +65,10 @@ function mapFirestoreStatus(
     case "not_attempted":
        return "Not attempted";
     default:
-      return "Locked";
+      // No record yet for this level (e.g. a product added after the user's
+      // profile was created). PathFinder is always the open entry tier, so
+      // treat missing data as "Not attempted" rather than defaulting to Locked.
+      return certId === "pathfinder" ? "Not attempted" : "Locked";
   }
 }
 
@@ -78,7 +82,7 @@ function levelToRow(certId: CertId, level?: LevelProgress): CertificationRow {
     subtext: meta.desc,
     bestScore: score > 0 ? `${score}%` : "—",
     attempts,
-    status: mapFirestoreStatus(level?.status),
+    status: mapFirestoreStatus(level?.status, certId),
     lastAttempt: formatLastAttempt(level?.lastAttemptDate ?? null),
   };
 }

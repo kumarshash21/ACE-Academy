@@ -501,6 +501,7 @@ input, textarea, select {
 .ptab.rtp.on { background: var(--purple); }
 .ptab.ttp.on { background: var(--cyan); }
 .ptab.ril.on { background: var(--amber); }
+.ptab.casepick.on { background: var(--go-orange); }
 .ptab.tools.on { background: var(--green); }
 
 .ltabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }

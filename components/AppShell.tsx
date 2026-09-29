@@ -390,7 +390,7 @@ export default function AppShell({ children, currentTab }: AppShellProps) {
         </div>
       </div>
 
-      {user && <AceBot />}
+      {/* {user && <AceBot />} */}
     </div>
   );
 }

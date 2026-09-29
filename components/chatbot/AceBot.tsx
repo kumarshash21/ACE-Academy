@@ -66,8 +66,10 @@ export default function AceBot() {
 
   return (
     <div className="acebot-root">
+      {/* Chat panel: only mounted while open, so closing resets no state but avoids layout cost */}
       {isOpen && (
         <div className="acebot-panel" role="dialog" aria-label="AceBot chat">
+          {/* Header: bot identity + online indicator, and the close control */}
           <div className="acebot-header">
             <div className="acebot-header-id">
               <div className="acebot-avatar">AB</div>
@@ -88,6 +90,7 @@ export default function AceBot() {
             </button>
           </div>
 
+          {/* Scrollable transcript: user/bot bubbles, typing indicator, then suggestion chips */}
           <div className="acebot-messages" ref={scrollRef}>
             {messages.map((message) => (
               <div key={message.id} className={`acebot-bubble-row ${message.role}`}>
@@ -95,6 +98,7 @@ export default function AceBot() {
               </div>
             ))}
 
+            {/* Animated dots shown while the bot's reply is "in flight" */}
             {isTyping && (
               <div className="acebot-bubble-row bot">
                 <div className="acebot-bubble bot acebot-typing">
@@ -105,6 +109,7 @@ export default function AceBot() {
               </div>
             )}
 
+            {/* Quick-start FAQ chips, shown only before the user's first message */}
             {showSuggestions && !isTyping && (
               <div className="acebot-suggestions">
                 {SUGGESTED_QUESTIONS.map((entry) => (
@@ -121,6 +126,7 @@ export default function AceBot() {
             )}
           </div>
 
+          {/* Composer: text input + send button, disabled while empty or awaiting a reply */}
           <form className="acebot-input-row" onSubmit={handleSubmit}>
             <input
               ref={inputRef}
@@ -138,6 +144,7 @@ export default function AceBot() {
         </div>
       )}
 
+      {/* Floating action button: toggles the panel, doubles as its close button when open */}
       <button
         type="button"
         className="acebot-fab"

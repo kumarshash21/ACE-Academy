@@ -1398,6 +1398,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         
         <select class="rank-team-select" id="rankTeamSelect" onchange="setRankTeam(this.value)">
           <option value="TAC" selected>TAC</option>
+          <option value="TAC-H/W">TAC-H/W</option>
           <option value="Change Management">Change Management</option>
           <option value="Client Director">Client Director</option>
           <option value="CEM">CEM</option>
@@ -1575,6 +1576,7 @@ const CMETA={
 // Tools track always shows toolscert for TAC; others see nothing for tools
 const PERSONA_CERTS={
   'TAC':               ['pathfinder','navigator','grandmaster','toolscert'],
+  'TAC-H/W':           ['pathfinder','navigator','grandmaster','toolscert'],
   'Change Management': ['pathfinder','navigator','toolscert'],
   'Client Director':   ['pathfinder','navigator','toolscert'],
   'CEM':               ['pathfinder','toolscert'],
@@ -3449,7 +3451,7 @@ function openUserModal(idx){
   const prev=document.getElementById('userForm');
   if(prev) prev.remove();
 
-  const teams=['TAC','Change Management','Client Director','CEM','CAC','IM','Management'];
+  const teams=['TAC','TAC-H/W','Change Management','Client Director','CEM','CAC','IM','Management'];
   const teamOpts=teams.map(t=>`<option value="${t}"${u&&u.team===t?' selected':''}>${t}</option>`).join('');
 
   const form=document.createElement('div');

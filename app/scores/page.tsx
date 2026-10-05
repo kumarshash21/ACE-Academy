@@ -41,7 +41,7 @@ export default function AllScores() {
 
   const allRows: ScoreRow[] = useMemo(() => deriveScoreRows(users), [users]);
 
-  const teams = ['TAC', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM', 'Project Manager', 'Solution Integration'];
+  const teams = ['TAC', 'TAC-H/W', 'Change Management', 'Client Director', 'CEM', 'CAC', 'IM', 'Project Manager', 'Solution Integration'];
 
   const rows: ScoreRow[] = useMemo(() => {
     const query = search.trim().toLowerCase();

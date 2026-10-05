@@ -3,6 +3,7 @@ import { fetchBackendJson } from "@/lib/backendApi";
 
 const PERSONA_CERTS: Record<string, string[]> = {
   TAC: ["pathfinder", "navigator", "grandmaster", "toolscert"],
+  "TAC-H/W": ["pathfinder", "navigator", "grandmaster", "toolscert"],
   "Change Management": ["pathfinder", "navigator", "toolscert"],
   "Client Director": ["pathfinder", "navigator", "toolscert"],
   CEM: ["pathfinder", "toolscert"],

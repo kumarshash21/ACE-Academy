@@ -15,6 +15,7 @@ Your dashboard automatically filters and displays only the certification levels 
 | Persona / Role | PathFinder | Navigator | Grand Master |
 | :--- | :---: | :---: | :---: |
 | **Technical Assistance Cell (TAC)** | ✅ REQUIRED | ✅ REQUIRED | ✅ REQUIRED |
+| **TAC-H/W** | ✅ REQUIRED | ✅ REQUIRED | ✅ REQUIRED |
 | **Change Management** | ✅ REQUIRED | ✅ REQUIRED | ❌ NOT REQUIRED |
 | **Client Director** | ✅ REQUIRED | ✅ REQUIRED | ❌ NOT REQUIRED |
 | **Client Experience Manager (CEM)** | ✅ REQUIRED | ❌ NOT REQUIRED | ❌ NOT REQUIRED |

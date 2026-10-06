@@ -538,6 +538,7 @@ const COURSE_TABS = [
   { id: "ttp", name: "Ranger TTP", icon: "📦", cssClass: "ttp" },
   { id: "ril", name: "Ranger RIL", icon: "🚚", cssClass: "ril" },
   { id: "casepick", name: "Case Pick", icon: "🧳", cssClass: "casepick" },
+  { id: "relay", name: "Relay", icon: "🔁", cssClass: "relay" },
   { id: "tools", name: "Tools & Techniques", icon: "🛠️", cssClass: "tools" },
 ];
 
@@ -818,6 +819,11 @@ export default function SyllabusPage() {
         <div className="empty">
           <div className="empty-ico">⏳</div>
           <p>Loading curriculum infrastructure configuration...</p>
+        </div>
+      ) : currentLevelData && currentLevelData.topics.length === 0 ? (
+        <div className="empty">
+          <div className="empty-ico">📂</div>
+          <p>No module found.</p>
         </div>
       ) : currentLevelData ? (
         <div>

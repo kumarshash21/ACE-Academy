@@ -15,6 +15,7 @@ const PRODUCTS = [
   { id: 'ttp', name: 'Ranger TTP', icon: '📦', certs: ['l1', 'l2', 'l3'], sections: [] },
   { id: 'ril', name: 'Ranger RIL', icon: '🚚', certs: ['l1', 'l2', 'l3'], sections: [] },
   { id: 'casepick', name: 'Case Pick', icon: '🧳', certs: ['l1', 'l2', 'l3'], sections: [] },
+  { id: 'relay', name: 'Relay', icon: '🔁', certs: ['l1', 'l2', 'l3'], sections: [] },
   { id: 'tools', name: 'Tools & Techniques', icon: '🛠️', certs: ['specialist'], sections: [] },
 ];
 

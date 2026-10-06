@@ -1,7 +1,7 @@
 export type CertId = "pathfinder" | "navigator" | "grandmaster" | "toolscert";
 
 export type ProductSummary = {
-  id: "rtp" | "ttp" | "tools" | "ril" | "casepick";
+  id: "rtp" | "ttp" | "tools" | "ril" | "casepick" | "relay";
   name: string;
   sub: string;
   icon: string;
@@ -90,6 +90,14 @@ export const PRODUCTS: ProductSummary[] = [
     name: "Case Pick",
     sub: "Case-Level Picking",
     icon: "🧳",
+    certs: ["pathfinder", "navigator", "grandmaster"],
+    moduleCount: 0,
+  },
+  {
+    id: "relay",
+    name: "Relay",
+    sub: "Relay",
+    icon: "🔁",
     certs: ["pathfinder", "navigator", "grandmaster"],
     moduleCount: 0,
   },

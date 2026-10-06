@@ -44,6 +44,7 @@ type AssessmentPayload = {
     | "ttp-pathfinder" | "ttp-navigator" | "ttp-grandmaster"
     | "rtp-navigator" | "rtp-grandmaster" | "rtp-pathfinder"
     | "tools-specialist"
+    | "relay-pathfinder" | "relay-navigator" | "relay-grandmaster"
   totalMarks: number;
   passingPercentage: number;
   timeLimit: number;
@@ -59,7 +60,8 @@ export async function POST(request: Request) {
     const validIds = [
       "ttp-pathfinder", "ttp-navigator", "ttp-grandmaster",
       "rtp-navigator", "rtp-grandmaster", "rtp-pathfinder",
-      "tools-specialist"
+      "tools-specialist",
+      "relay-pathfinder", "relay-navigator", "relay-grandmaster"
     ];
     if (!quizId || !validIds.includes(quizId)) {
       return NextResponse.json(

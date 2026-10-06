@@ -1193,6 +1193,25 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .stat.c-green .stat-val{color:var(--green-l)}
 .stat.c-cyan .stat-val{color:var(--cyan-l)}
 .stat-lbl{font-size:11px;color:var(--text2);margin-top:6px;font-weight:500}
+
+/* ── Onboarding tour ── */
+#tourLayer{position:fixed;inset:0;z-index:10000;display:none}
+#tourLayer.on{display:block}
+#tourSpot{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(5,8,14,.78);border:2px solid var(--purple-l);transition:all .25s ease;pointer-events:none}
+#tourSpot.none{box-shadow:0 0 0 9999px rgba(5,8,14,.78);border-color:transparent}
+#tourCard{position:fixed;width:340px;max-width:calc(100vw - 32px);background:var(--surface2);border:1px solid var(--border2);border-radius:14px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.5);transition:top .25s ease,left .25s ease}
+#tourCard h3{font-size:16px;font-weight:700;margin-bottom:6px}
+#tourCard p{font-size:13px;line-height:1.55;color:var(--text2)}
+.tour-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:8px}
+.tour-dots{display:flex;gap:5px}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+.tour-dots i.on{background:var(--purple-l);width:16px;border-radius:3px}
+.tour-btns{display:flex;gap:8px;align-items:center}
+.tour-skip{background:none;border:none;color:var(--text2);font:inherit;font-size:12px;cursor:pointer}
+.tour-skip:hover{color:var(--text)}
+.tour-back,.tour-next{font:inherit;font-size:12px;font-weight:600;border-radius:8px;padding:7px 14px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--text)}
+.tour-next{background:var(--purple);border-color:var(--purple)}
+.tour-back[disabled]{visibility:hidden}
 </style>
 </head>
 <body>
@@ -1315,12 +1334,12 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   </div>
 
   <div class="shell">
-    <div class="sidebar" id="sidebar">
+    <div class="sidebar" id="sidebar" data-tour="sidebar">
       <div class="sid-label">Learn</div>
       <div class="nav on" onclick="goPage('dash')" id="n-dash"><span class="nav-ico">⊞</span>Dashboard</div>
-      <div class="nav" id="n-syllabus"><span class="nav-ico">◈</span><a href="/ace_academy/syllabus" target="_top">Syllabus</a></div>
-      <div class="nav" id="n-assessment"><span class="nav-ico">✎</span><a href="/ace_academy/assessment" target="_top">Assessment</a></div>
-      <div class="nav" id="n-certifications"><span class="nav-ico">◎</span><a href="/ace_academy/certifications" target="_top">My Certifications</a></div>
+      <div class="nav" id="n-syllabus" data-tour="syllabus"><span class="nav-ico">◈</span><a href="/ace_academy/syllabus" target="_top">Syllabus</a></div>
+      <div class="nav" id="n-assessment" data-tour="assessment"><span class="nav-ico">✎</span><a href="/ace_academy/assessment" target="_top">Assessment</a></div>
+      <div class="nav" id="n-certifications" data-tour="certs"><span class="nav-ico">◎</span><a href="/ace_academy/certifications" target="_top">My Certifications</a></div>
       <div class="nav" id="n-functionaltraining"><span class="nav-ico">◎</span><a href="/ace_academy/functionaltraining" target="_top">Functional Training</a></div>
       <div class="nav" id="n-functionaltraining"><span class="nav-ico">ⓘ</span><a href="/ace_academy/about" target="_top">About</a></div>
       <div class="sid-label" id="adminSec" style="display:none">Admin</div>
@@ -1328,7 +1347,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
       <div class="nav" id="n-scores" style="display:none"><span class="nav-ico">≡</span><a href="/ace_academy/scores" target="_top">All Scores</a></div>
       <div class="nav" id="n-userprogress" style="display:none"><span class="nav-ico">◈</span><a href="/ace_academy/userprogress" target="_top">User Progress</a></div>
 
-      <div class="sid-bottom">
+      <div class="sid-bottom" data-tour="xp">
         <div class="sid-stat" title="Total XP"><span class="sid-stat-ico">⚡</span><span id="sidXp">0 XP</span></div>
         <div class="sid-stat" title="Day streak"><span class="sid-stat-ico">🔥</span><span id="sidStreak">0</span></div>
       </div>
@@ -1357,7 +1376,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         <p id="dashSubtitle">Track your learning progress and certifications across all ACE Academy programs.</p>
       </div>
       
-      <div class="stats">
+      <div class="stats" data-tour="stats">
         <div class="stat c-purple"><div class="stat-val" id="sTot">—</div><div class="stat-lbl">Modules in your program</div></div>
         <div class="stat c-orange"><div class="stat-val" id="sCovered">0</div><div class="stat-lbl">Modules covered</div></div>
         <div class="stat c-green"><div class="stat-val" id="sEarned">0</div><div class="stat-lbl">Certifications earned</div></div>
@@ -1365,13 +1384,13 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
       </div>
       
       <div class="ph compact"><h2 style="font-size:16px;font-weight:700">Learning Progress</h2></div>
-      <div id="dashProgress" style="margin-bottom:24px"></div>
+      <div id="dashProgress" data-tour="progress" style="margin-bottom:24px"></div>
       <div id="dashJourney"></div>
     </div>
 
     <div class="dash-right-ranking">
       
-      <div class="rank-card">
+      <div class="rank-card" data-tour="org-rank">
         <div class="rank-card-head">
           <div class="rank-card-title"><span class="rank-ico">🏢</span> Org. Ranking</div>
           <span class="rank-card-badge global">ORG-WIDE</span>
@@ -1390,7 +1409,7 @@ input,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
         <div class="rank-list" id="rankOrgList"></div>
       </div>
 
-      <div class="rank-card">
+      <div class="rank-card" data-tour="team-rank">
         <div class="rank-card-head">
           <div class="rank-card-title"><span class="rank-ico">👥</span> Team Ranking</div>
           <span class="rank-card-badge team">BY TEAM</span>
@@ -2571,6 +2590,95 @@ function initApp(){
     document.getElementById('n-userprogress').style.display='flex';
   }
   goPage('dash');
+  setTimeout(()=>startTour(false),600);
+}
+
+
+// ════════════════════════════════════════
+// FIRST-TIME ONBOARDING TOUR
+// ════════════════════════════════════════
+const TOUR_STEPS=[
+  {t:'Welcome to ACE Academy 👋',d:'Take a 30-second tour of your dashboard. You can skip any time.'},
+  {sel:'syllabus',t:'📘 Syllabus — start here',d:'This is where your learning begins. Open the Syllabus first and study the modules in order (e.g. 1.1 Platform &amp; Infrastructure). Mark each module as covered as you finish it — your progress is tracked from here.'},
+  {sel:'assessment',t:'✎ Assessment — prove it',d:'Once you have covered the syllabus modules, take the Assessment for that level. It is timed, and you need to reach the pass mark to earn the certification.'},
+  {sel:'certs',t:'◎ My Certifications',d:'Passed assessments show up here as your certifications. Levels unlock in order: PathFinder → Navigator → Grand Master.'},
+  {sel:'stats',t:'Your numbers at a glance',d:'Modules in your program, modules covered, certifications earned and your personal best score.'},
+  {sel:'progress',t:'Learning progress',d:'Your journey so far. Follow it as Syllabus → Assessment → Certification, then move on to the next level.'},
+  {sel:'org-rank',t:'Org ranking',d:'See how you compare org-wide. Filter by product (RTP, TTP, RIL, Tools) and level.'},
+  {sel:'team-rank',t:'Team ranking',d:'Pick a team to see its leaderboard and where you stand.'},
+  {sel:'xp',t:'XP & streak',d:'Earn XP as you learn and keep your daily streak alive. You\'re all set — happy learning!'}
+];
+let tourIdx=0;
+function tourKey(){return 'ace2_tour_done_'+(CU&&CU.email?CU.email.toLowerCase():'anon')}
+function tourDone(){try{return localStorage.getItem(tourKey())==='1'}catch(_e){return false}}
+function endTour(){
+  try{localStorage.setItem(tourKey(),'1')}catch(_e){}
+  const l=document.getElementById('tourLayer');
+  if(l) l.classList.remove('on');
+  document.removeEventListener('keydown',tourKeys);
+  window.removeEventListener('resize',tourPlace);
+}
+function tourKeys(e){
+  if(e.key==='Escape') endTour();
+  else if(e.key==='ArrowRight') tourGo(1);
+  else if(e.key==='ArrowLeft') tourGo(-1);
+}
+function tourGo(d){
+  const n=tourIdx+d;
+  if(n>=TOUR_STEPS.length){endTour();return}
+  if(n<0) return;
+  tourIdx=n;tourRender();
+}
+function tourRender(){
+  const s=TOUR_STEPS[tourIdx],last=tourIdx===TOUR_STEPS.length-1;
+  const card=document.getElementById('tourCard');
+  card.innerHTML=`<h3>${s.t}</h3><p>${s.d}</p>
+    <div class="tour-foot">
+      <div class="tour-dots">${TOUR_STEPS.map((_,i)=>`<i class="${i===tourIdx?'on':''}"></i>`).join('')}</div>
+      <div class="tour-btns">
+        ${last?'':'<button class="tour-skip" onclick="endTour()">Skip tour</button>'}
+        <button class="tour-back" onclick="tourGo(-1)" ${tourIdx===0?'disabled':''}>Back</button>
+        <button class="tour-next" onclick="tourGo(1)">${last?'Get started':'Next'}</button>
+      </div>
+    </div>`;
+  tourPlace();
+}
+function tourPlace(){
+  const s=TOUR_STEPS[tourIdx],card=document.getElementById('tourCard'),spot=document.getElementById('tourSpot');
+  const el=s.sel?document.querySelector('[data-tour="'+s.sel+'"]'):null;
+  const vw=window.innerWidth,vh=window.innerHeight,cw=card.offsetWidth,ch=card.offsetHeight;
+  if(!el||el.offsetParent===null){
+    spot.className='none';
+    Object.assign(spot.style,{top:vh/2+'px',left:vw/2+'px',width:'0px',height:'0px'});
+    card.style.top=Math.max(16,(vh-ch)/2)+'px';
+    card.style.left=Math.max(16,(vw-cw)/2)+'px';
+    return;
+  }
+  el.scrollIntoView({block:'nearest',inline:'nearest'});
+  const r=el.getBoundingClientRect(),pad=6;
+  spot.className='';
+  Object.assign(spot.style,{top:r.top-pad+'px',left:r.left-pad+'px',width:r.width+pad*2+'px',height:r.height+pad*2+'px'});
+  let top,left;
+  if(r.right+cw+24<vw){left=r.right+16;top=r.top}
+  else if(r.left-cw-24>0){left=r.left-cw-16;top=r.top}
+  else if(r.bottom+ch+24<vh){top=r.bottom+16;left=r.left}
+  else{top=r.top-ch-16;left=r.left}
+  card.style.top=Math.min(Math.max(16,top),vh-ch-16)+'px';
+  card.style.left=Math.min(Math.max(16,left),vw-cw-16)+'px';
+}
+function startTour(force){
+  if(!force&&tourDone()) return;
+  let l=document.getElementById('tourLayer');
+  if(!l){
+    l=document.createElement('div');l.id='tourLayer';
+    l.innerHTML='<div id="tourSpot"></div><div id="tourCard" role="dialog" aria-live="polite"></div>';
+    document.body.appendChild(l);
+  }
+  tourIdx=0;
+  l.classList.add('on');
+  document.addEventListener('keydown',tourKeys);
+  window.addEventListener('resize',tourPlace);
+  tourRender();
 }
 
 // ════════════════════════════════════════

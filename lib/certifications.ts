@@ -24,6 +24,7 @@ const MODULE_LEVELS: { module_name: string; levels: string[] }[] = [
   { module_name: "Ranger TTP", levels: ["PathFinder", "Navigator", "Grand Master"] },
   { module_name: "Ranger RIL", levels: ["PathFinder", "Navigator", "Grand Master"] },
   { module_name: "Case Pick", levels: ["PathFinder", "Navigator", "Grand Master"] },
+  { module_name: "Relay", levels: ["PathFinder", "Navigator", "Grand Master"] },
   { module_name: "Tools & Techniques", levels: ["Tools Specialist"] },
 ];
 

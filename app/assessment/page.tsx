@@ -65,6 +65,46 @@ interface SavedProgress {
   savedAt: number;
 }
 
+const MIN_COMPLETION_PERCENT = 70;
+
+interface CompletionCheck {
+  percent: number;
+  done: number;
+  total: number;
+}
+
+// Share of a level's syllabus modules the user has marked as done. Returns
+// null when it can't be determined (no uid, fetch failure, empty syllabus) so
+// the caller decides whether to fail open.
+async function getLevelCompletion(
+  uid: string,
+  productId: string,
+  levelId: string
+): Promise<CompletionCheck | null> {
+  const [syllabusRes, progressRes] = await Promise.all([
+    fetch(apiUrl(`/api/postgres/syllabus/${productId}`)),
+    fetch(apiUrl(`/api/postgres/user-progress/${encodeURIComponent(uid)}`)),
+  ]);
+  if (!syllabusRes.ok || !progressRes.ok) return null;
+
+  const syllabus = await syllabusRes.json();
+  const progress = await progressRes.json();
+  const done: Record<string, unknown> = progress?.done && typeof progress.done === "object" ? progress.done : {};
+
+  const level = (syllabus?.levels ?? []).find(
+    (l: { name: string }) => l.name.toLowerCase().replace(/\s+/g, "") === levelId
+  );
+  if (!level) return null;
+
+  const codes: string[] = (level.topics ?? []).flatMap((t: { modules?: { code: string }[] }) =>
+    (t.modules ?? []).map((m) => m.code)
+  );
+  if (codes.length === 0) return null;
+
+  const doneCount = codes.filter((code) => done[`${productId}-${code}-${levelId}`]).length;
+  return { percent: Math.round((doneCount / codes.length) * 100), done: doneCount, total: codes.length };
+}
+
 function getModuleNameForTab(tabId: string): string | undefined {
   return COURSE_TABS.find((tab) => tab.id === tabId)?.name;
 }
@@ -147,6 +187,7 @@ export default function AssessmentsPage() {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showConfigAlert, setShowConfigAlert] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const [completionBlock, setCompletionBlock] = useState<CompletionCheck | null>(null);
   const [showTimeoutAlert, setShowTimeoutAlert] = useState(false);
   
   // --- Score Screen State ---
@@ -192,6 +233,19 @@ const handleLevelClick = async (levelId: string) => {
     setActiveLoadingLevel(levelId);
     
     try {
+      // Prerequisite: at least MIN_COMPLETION_PERCENT of this level's syllabus
+      // modules must be marked as done before the quiz can be launched.
+      const uid = getSessionUid();
+      if (!uid) {
+        setShowLoginAlert(true);
+        return;
+      }
+      const completion = await getLevelCompletion(uid, activeTabId, levelId);
+      if (completion && completion.percent < MIN_COMPLETION_PERCENT) {
+        setCompletionBlock(completion);
+        return;
+      }
+
       // Both standard tracks and the tools track will now cleanly use a standard GET request relatively
       const response = await fetch(apiUrl(`/api/postgres/assessments?quizId=${targetQuizId}`));
 
@@ -547,7 +601,17 @@ const handleLevelClick = async (levelId: string) => {
   return (
     <AppShell currentTab="assessment">
       {showConfigAlert && <ModernSystemModal title="Empty Assessment Layout" message="No questions found for this configuration layout." onConfirm={() => setShowConfigAlert(false)} />}
-      {showLoginAlert && <ModernSystemModal title="Authentication Needed" message="You must be signed in to submit an assessment." onConfirm={() => setShowLoginAlert(false)} />}
+      {showLoginAlert && <ModernSystemModal title="Authentication Needed" message="You must be signed in to take an assessment." onConfirm={() => setShowLoginAlert(false)} />}
+      {completionBlock && (
+        <ModernSystemModal
+          title="Complete Modules - Mark them Done ✅"
+          message={`You've marked ${completionBlock.done} of ${completionBlock.total} modules as done (${completionBlock.percent}%). Reach at least ${MIN_COMPLETION_PERCENT}% in the Syllabus before taking this assessment.`}
+          confirmText="Go to Syllabus"
+          cancelText="Close"
+          onConfirm={() => { setCompletionBlock(null); window.location.href = "/ace_academy/syllabus"; }}
+          onCancel={() => setCompletionBlock(null)}
+        />
+      )}
       {showTimeoutAlert && <ModernSystemModal title="Time Expired" message="Time is up! Your assessment is being automatically calculated." onConfirm={() => setShowTimeoutAlert(false)} />}
       {showResumePrompt && pendingQuiz && pendingProgress && (
         <ModernSystemModal
